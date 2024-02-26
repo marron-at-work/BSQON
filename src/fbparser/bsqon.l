@@ -3,7 +3,7 @@
 %{
 #include "bsqon.tab.h"
 
-#include "bytestring.h"
+#include "../../../src/fbparser/bytestring.h"
 
 #define MAX_STR_CONST 4096
 
@@ -74,10 +74,8 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
 ","         { return SYM_COMMA; }
 "&"         { return SYM_AMP; }
 "|"         { return SYM_BAR; }
-"!"         { return SYM_BANG; }
 "="         { return SYM_EQUALS; }
 "."         { return SYM_DOT; }
-"@"         { return SYM_AT; }
 "_"         { return SYM_UNDERSCORE; }
 
  /* keywords */
@@ -89,7 +87,6 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
 
 "$src"      { return KW_SRC; }
 "none"      { return KW_NONE; }
-"some"      { return KW_SOME; }
 "true"      { return KW_TRUE; } 
 
 "err"       { return KW_ERR; }
@@ -205,7 +202,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 
 {DATE}T{TIME}("."[0-9]{3})Z { yylval.str = AST_STRDUP(yytext); return TOKEN_TIMESTAMP; }
 
-/* deltas */
+ /* deltas */
 [+-]{DATE}T{TIME} { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_DATE_TIME; }
 [+-]{DATE}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_DATE; }
 [+-]{TIME}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_TIME; }

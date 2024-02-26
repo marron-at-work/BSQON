@@ -57,15 +57,15 @@ bsqon: $(BSQON_HEADERS) $(BSQON_SOURCES) $(PARSER_OBJS)
 
 $(OUT_OBJ)bytestring.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
 	@mkdir -p $(OUT_OBJ)
-	$(CC) $(CFLAGS) -o $(OUT_OBJ)bytestring.o -c $(BSQON_CFG_DIR)bytestring.c
+	$(CC) $(CFLAGS) -o $(OUT_OBJ)bytestring.o -c $(PARSER_GEN_DIR)bytestring.c
 
 $(OUT_OBJ)bsqon_ast_common.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
 	@mkdir -p $(OUT_OBJ)
-	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast_common.o -c $(BSQON_CFG_DIR)bsqon_ast_common.c
+	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast_common.o -c $(PARSER_GEN_DIR)bsqon_ast_common.c
 
 $(OUT_OBJ)bsqon_ast.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
 	@mkdir -p $(OUT_OBJ)
-	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast.o -c $(BSQON_CFG_DIR)bsqon_ast.c
+	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast.o -c $(PARSER_GEN_DIR)bsqon_ast.c
 
 $(OUT_OBJ)bsqon.tab.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
 	@mkdir -p $(OUT_OBJ)

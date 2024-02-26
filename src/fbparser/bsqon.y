@@ -4,8 +4,6 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "bsqon_ast.h"
-
 int yylex(void);
 void yyerror(const char* s, ...);
 
@@ -27,7 +25,7 @@ int errorcount = 0;
 %}
 
 %code requires {
-#include "bsqon_ast.h"
+#include "../../../src/fbparser/bsqon_ast.h"
 }
 
 %union {
@@ -127,7 +125,7 @@ int errorcount = 0;
 %type <bsqon_named_type_list_entry> bsqonnametypel_entry
 %type <bsqon_named_type_list> bsqonnametypel
 
-%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonstringview, bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
+%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonstringview bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
 %type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval bsqonroot
 %type <bsqon_value_list> bsqonvall
 
@@ -236,8 +234,8 @@ bsqonliteral:
    | TOKEN_DELTA_DATE_TIME   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaDateTimeValue, MK_SPOS_S(@1), $1); }
    | TOKEN_DELTA_PLAIN_DATE  { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainDateValue, MK_SPOS_S(@1), $1); }
    | TOKEN_DELTA_PLAIN_TIME  { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_FULL_DELTA        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_FullDeltaValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_SECONDS_DELTA     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_SecondsDeltaValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_FULL_DELTA        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaFullValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_SECONDS_DELTA     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaSecondsValue, MK_SPOS_S(@1), $1); }
 ;
 
 bsqonunspecvar: 
@@ -259,12 +257,12 @@ bsqonstringof:
 ;
 
 bsqonstringview:
-   TOKEN_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
-   | TOKEN_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
-   | TOKEN_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
-   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
-   | TOKEN_ASCII_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
-   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSlice, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
+   TOKEN_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
+   | TOKEN_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
+   | TOKEN_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
+   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
+   | TOKEN_ASCII_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
+   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
 ;
 
 bsqonpath:
@@ -365,9 +363,9 @@ bsqonletexp:
 ;
 
 bsqonaccess:
-   bsqonval SYM_DOT TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(AccessValue, BSQON_AST_TAG_AccessNameValue, MK_SPOS_R(@1, @3), $1, $3); }
-   | bsqonval SYM_DOT TOKEN_NUMBERINO { $$ = BSQON_AST_NODE_CONS(AccessValue, BSQON_AST_TAG_AccessIndexValue, MK_SPOS_R(@1, @3), $1, $3); }
-   | bsqonval '[' bsqonterminal ']' { $$ = BSQON_AST_NODE_CONS(AccessValue, BSQON_AST_TAG_AccessValue, MK_SPOS_R(@1, @4), $1, $3); }
+   bsqonidentifier SYM_DOT TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(AccessNameValue, BSQON_AST_TAG_AccessNameValue, MK_SPOS_R(@1, @3), $1, $3); }
+   | bsqonidentifier SYM_DOT TOKEN_NUMBERINO { $$ = BSQON_AST_NODE_CONS(AccessIndexValue, BSQON_AST_TAG_AccessIndexValue, MK_SPOS_R(@1, @3), $1, $3); }
+   | bsqonidentifier '[' bsqonterminal ']' { $$ = BSQON_AST_NODE_CONS(AccessKeyValue, BSQON_AST_TAG_AccessKeyValue, MK_SPOS_R(@1, @4), $1, $3); }
 ;
 
 bsqonroot: 
