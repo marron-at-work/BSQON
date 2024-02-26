@@ -21,6 +21,7 @@ BSQON_AST_NODE_DEFINE_1(LiteralStringValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DEFINE_1(NameValue, const char*, data)
 BSQON_AST_NODE_DEFINE_2(StringOfValue, struct ByteString*, data, struct BSQON_AST_Node*, type)
+BSQON_AST_NODE_DEFINE_3(StringSliceValue, struct ByteString*, data, const char*, start, const char*, end)
 BSQON_AST_NODE_DEFINE_2(PathValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DEFINE_2(TypedLiteralValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DEFINE_2(MapEntryValue, struct BSQON_AST_Node*, key, struct BSQON_AST_Node*, value)
@@ -31,6 +32,10 @@ BSQON_AST_NODE_DEFINE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const c
 
 BSQON_AST_NODE_DEFINE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)
 BSQON_AST_NODE_DEFINE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*, vtype, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, exp)
+
+BSQON_AST_NODE_DEFINE_2(AccessNameValue, struct BSQON_AST_Node*, value, const char*, name)
+BSQON_AST_NODE_DEFINE_2(AccessIndexValue, struct BSQON_AST_Node*, value, const char*, idx)
+BSQON_AST_NODE_DEFINE_2(AccessKeyValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, kk)
 
 enum BSQON_AST_TAG BSQON_AST_getTag(const struct BSQON_AST_Node* node)
 {
@@ -79,10 +84,17 @@ const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node)
         case BSQON_AST_TAG_LogicalTimeValue: return "LogicalTimeValue";
         case BSQON_AST_TAG_TickTimeValue: return "TickTimeValue";
         case BSQON_AST_TAG_TimestampValue: return "TimestampValue";
+        case BSQON_AST_TAG_DeltaDateTimeValue: return "DeltaDateTimeValue";
+        case BSQON_AST_TAG_DeltaPlainDateValue: return "DeltaPlainDateValue";
+        case BSQON_AST_TAG_DeltaPlainTimeValue: return "DeltaPlainTimeValue";
+        case BSQON_AST_TAG_DeltaFullValue: return "DeltaFullValue";
+        case BSQON_AST_TAG_DeltaSecondsValue: return "DeltaSecondsValue";
         case BSQON_AST_TAG_IdentifierValue: return "IdentifierValue";
         case BSQON_AST_TAG_UnspecIdentifierValue: return "UnspecIdentifierValue";
         case BSQON_AST_TAG_StringOfValue: return "StringOfValue";
         case BSQON_AST_TAG_ASCIIStringOfValue: return "ASCIIStringOfValue";
+        case BSQON_AST_TAG_StringSliceValue: return "StringSliceValue";
+        case BSQON_AST_TAG_ASCIIStringSliceValue: return "ASCIIStringSliceValue";
         case BSQON_AST_TAG_PathValue: return "PathValue";
         case BSQON_AST_TAG_TypedLiteralValue: return "TypedLiteralValue";
         case BSQON_AST_TAG_MapEntryValue: return "MapEntryValue";
@@ -93,6 +105,9 @@ const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node)
         case BSQON_AST_TAG_OkConsValue: return "OkConsValue";
         case BSQON_AST_TAG_ErrConsValue: return "ErrConsValue";
         case BSQON_AST_TAG_LetInValue: return "LetInValue";
+        case BSQON_AST_TAG_AccessNameValue: return "AccessNameValue";
+        case BSQON_AST_TAG_AccessIndexValue: return "AccessIndexValue";
+        case BSQON_AST_TAG_AccessKeyValue: return "AccessKeyValue";
         case BSQON_AST_TAG_ScopedNameValue: return "ScopedNameValue";
         default: return "^^MISSING_CASE^^";
     }
@@ -212,7 +227,12 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
     case BSQON_AST_TAG_PlainTimeValue:
     case BSQON_AST_TAG_LogicalTimeValue:
     case BSQON_AST_TAG_TickTimeValue:
-    case BSQON_AST_TAG_TimestampValue: {
+    case BSQON_AST_TAG_TimestampValue: 
+    case BSQON_AST_TAG_DeltaDateTimeValue:
+    case BSQON_AST_TAG_DeltaPlainDateValue:
+    case BSQON_AST_TAG_DeltaPlainTimeValue:
+    case BSQON_AST_TAG_DeltaFullValue:
+    case BSQON_AST_TAG_DeltaSecondsValue: {
         const struct BSQON_AST_NODE(LiteralStandardValue)* nn = BSQON_AST_NODE_AS(LiteralStandardValue, node);
         printf("%s", nn->data);
         break;
@@ -228,6 +248,12 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         const struct BSQON_AST_NODE(StringOfValue)* nn = BSQON_AST_NODE_AS(StringOfValue, node);
         printf("%s", nn->data->bytes);
         BSQON_AST_print(nn->type);
+        break;
+    }
+    case BSQON_AST_TAG_StringSliceValue:
+    case BSQON_AST_TAG_ASCIIStringSliceValue: {
+        const struct BSQON_AST_NODE(StringSliceValue)* nn = BSQON_AST_NODE_AS(StringSliceValue, node);
+        printf("%s[%s, %s]", nn->data->bytes, nn->start != NULL ? nn->start : "", nn->end != NULL ? nn->end : "");
         break;
     }
     case BSQON_AST_TAG_PathValue: {
@@ -297,6 +323,26 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         printf(" in ");
         BSQON_AST_print(nn->exp);
         printf(")");
+        break;
+    }
+    case BSQON_AST_TAG_AccessNameValue: {
+        const struct BSQON_AST_NODE(AccessNameValue)* nn = BSQON_AST_NODE_AS(AccessNameValue, node);
+        BSQON_AST_print(nn->value);
+        printf(".%s", nn->name);
+        break;
+    }
+    case BSQON_AST_TAG_AccessIndexValue: {
+        const struct BSQON_AST_NODE(AccessIndexValue)* nn = BSQON_AST_NODE_AS(AccessIndexValue, node);
+        BSQON_AST_print(nn->value);
+        printf(".%s", nn->idx);
+        break;
+    }
+    case BSQON_AST_TAG_AccessKeyValue: {
+        const struct BSQON_AST_NODE(AccessKeyValue)* nn = BSQON_AST_NODE_AS(AccessKeyValue, node);
+        BSQON_AST_print(nn->value);
+        printf("[");
+        BSQON_AST_print(nn->kk);
+        printf("]");
         break;
     }
     case BSQON_AST_TAG_ScopedNameValue: {

@@ -50,11 +50,19 @@ enum BSQON_AST_TAG
     BSQON_AST_TAG_TickTimeValue,
     BSQON_AST_TAG_TimestampValue,
 
+    BSQON_AST_TAG_DeltaDateTimeValue,
+    BSQON_AST_TAG_DeltaPlainDateValue,
+    BSQON_AST_TAG_DeltaPlainTimeValue,
+    BSQON_AST_TAG_DeltaFullValue,
+    BSQON_AST_TAG_DeltaSecondsValue,
+
     BSQON_AST_TAG_IdentifierValue,
     BSQON_AST_TAG_UnspecIdentifierValue,
     
     BSQON_AST_TAG_StringOfValue,
     BSQON_AST_TAG_ASCIIStringOfValue,
+    BSQON_AST_TAG_StringSliceValue,
+    BSQON_AST_TAG_ASCIIStringSliceValue,
     BSQON_AST_TAG_PathValue,
     BSQON_AST_TAG_TypedLiteralValue,
 
@@ -68,6 +76,9 @@ enum BSQON_AST_TAG
     BSQON_AST_TAG_ErrConsValue,
 
     BSQON_AST_TAG_LetInValue,
+    BSQON_AST_TAG_AccessNameValue,
+    BSQON_AST_TAG_AccessIndexValue,
+    BSQON_AST_TAG_AccessKeyValue,
 
     BSQON_AST_TAG_ScopedNameValue
 };
@@ -134,6 +145,7 @@ BSQON_AST_NODE_DECLARE_1(LiteralStringValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DECLARE_1(NameValue, const char*, data)
 BSQON_AST_NODE_DECLARE_2(StringOfValue, struct ByteString*, data, struct BSQON_AST_Node*, type)
+BSQON_AST_NODE_DECLARE_3(StringSliceValue, struct ByteString*, data, const char*, start, const char*, end)
 BSQON_AST_NODE_DECLARE_2(PathValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DECLARE_2(TypedLiteralValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DECLARE_2(MapEntryValue, struct BSQON_AST_Node*, key, struct BSQON_AST_Node*, value)
@@ -144,6 +156,10 @@ BSQON_AST_NODE_DECLARE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const 
 
 BSQON_AST_NODE_DECLARE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)
 BSQON_AST_NODE_DECLARE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*, vtype, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, exp)
+
+BSQON_AST_NODE_DECLARE_2(AccessNameValue, struct BSQON_AST_Node*, value, const char*, name)
+BSQON_AST_NODE_DECLARE_2(AccessIndexValue, struct BSQON_AST_Node*, value, const char*, idx)
+BSQON_AST_NODE_DECLARE_2(AccessKeyValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, kk)
 
 enum BSQON_AST_TAG BSQON_AST_getTag(const struct BSQON_AST_Node* node);
 const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node);

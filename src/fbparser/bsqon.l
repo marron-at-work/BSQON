@@ -130,8 +130,7 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
  /* numberinos */
 [+-](0|{NON_ZERO_INTEGRAL}) { yyerror("Cannot have sign on indexer"); return YYerror; }
 
-0|{NON_ZERO_INTEGRAL}       { yylval.str = AST_STRDUP(yytext); return TOKEN_NUMBERINO; }
-
+0|[+-]?{NON_ZERO_INTEGRAL}       { yylval.str = AST_STRDUP(yytext); return TOKEN_NUMBERINO; }
 
  /* strings */
 0x"["[a-fA-F0-9]*"]"    { yylval.str = AST_STRDUP(yytext); return TOKEN_BYTE_BUFFER; }
@@ -172,7 +171,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 "/"         { BEGIN(REGEX); string_buf_bs.len = 0; ByteStringStoreChar('/'); }
 }
 <REGEX>{
-"/"         { BEGIN(INITIAL); ByteStringStoreChar('/'); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_REGEX; }
+"/"[a|p|r]  { BEGIN(INITIAL); ByteStringStoreChar('/'); ByteStringStoreChar(yytext[1]); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_REGEX; }
 <<EOF>>     { BEGIN(INITIAL); yyerror("Unclosed Regex"); return YYEOF; }
 \n          { yyerror("Newline in Regex"); return YYerror; }
 [!-~ \t]    { ByteStringStoreChar(yytext[0]); }
@@ -180,7 +179,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 }
 
 <INITIAL>{
-(glob|fragment)?\\     { BEGIN(PATH_ITEM); string_buf_bs.len = 0; ByteStringStoreText(yytext, yyleng); }
+(g|f)?\\     { BEGIN(PATH_ITEM); string_buf_bs.len = 0; ByteStringStoreText(yytext, yyleng); }
 }
 <PATH_ITEM>{
 \\          { BEGIN(INITIAL); ByteStringStoreChar('\\'); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_PATH_ITEM; }
@@ -205,6 +204,14 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 [+-]?00+[tl]                                     { yyerror("Leading zero is not allowed"); return YYerror; }
 
 {DATE}T{TIME}("."[0-9]{3})Z { yylval.str = AST_STRDUP(yytext); return TOKEN_TIMESTAMP; }
+
+/* deltas */
+[+-]{DATE}T{TIME} { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_DATE_TIME; }
+[+-]{DATE}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_DATE; }
+[+-]{TIME}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_TIME; }
+
+[+-]{DATE}T{TIME}("."[0-9]{3}) { yylval.str = AST_STRDUP(yytext); return TOKEN_FULL_DELTA; }
+[+-](0|{NON_ZERO_INTEGRAL})"."[0-9]{1,4}"dsecs" { yylval.str = AST_STRDUP(yytext); return TOKEN_SECONDS_DELTA; }
 
  /* names */
 {IDENTIFIER} { 
