@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../common.h"
-#include "../regex/bsqregex.h"
-#include "../regex/bsqpath.h"
 #include "type_info.h"
 
 #include <boost/multiprecision/gmp.hpp>
@@ -10,13 +8,6 @@
 
 namespace BSQON
 {
-    std::optional<char32_t> decodeHexEscape(std::string escc);
-    
-    UnicodeString resolveEscapeUnicodeFromCode(char32_t c);
-    char32_t resolveEscapeUnicodeFromName(const UnicodeString& name);
-    std::string resolveEscapeASCIIFromCode(char c);
-    char resolveEscapeASCIIFromName(const std::string& name);
-
     class SourcePos
     {
     public:
@@ -722,6 +713,11 @@ namespace BSQON
         virtual std::string toString() const override
         {
             return this->tv->toString();
+        }
+
+        static int keyCompare(const RegexValue* v1, const RegexValue* v2)
+        {
+            return Value::keyCompareImplStringish(v1->tv->toString(), v2->tv->toString());
         }
     };
 

@@ -1,6 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+
+#include <optional>
+#include <vector>
+#include <set>
+#include <map>
 
 #include "json.hpp"
 typedef nlohmann::json json;

@@ -198,6 +198,15 @@ namespace BSQON
                 else if(dtype == "LogicalTime") {
                     return LogicalTimeValue::keyCompare(static_cast<const LogicalTimeValue*>(v1), static_cast<const LogicalTimeValue*>(v2));
                 }
+                else if(dtype == "Regex") {
+                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                }
+                else if(dtype == "ASCIIRegex") {
+                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                }
+                else if(dtype == "ResourceRegex") {
+                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                }
                 else {
                     //should be ISOTimestamp
                     return ISOTimeStampValue::keyCompare(static_cast<const ISOTimeStampValue*>(v1), static_cast<const ISOTimeStampValue*>(v2));

@@ -2,8 +2,6 @@
 #pragma once
 
 #include "../common.h"
-#include "../regex/bsqregex.h"
-#include "../regex/bsqpath.h"
 
 namespace BSQON
 {
@@ -404,8 +402,9 @@ namespace BSQON
         std::map<TypeKey, Type*> typerefs;
         std::vector<std::set<TypeKey>> recursiveSets;
         std::map<TypeKey, std::string> bsqonRegexValidators;
+        std::map<TypeKey, std::string> bsqonPathValidators;
 
-        AssemblyInfo() : aliasmap(), namespaces(), typerefs(), recursiveSets(), bsqonRegexValidators()
+        AssemblyInfo() : aliasmap(), namespaces(), typerefs(), recursiveSets(), bsqonRegexValidators(), bsqonPathValidators()
         { 
             ; 
         }
@@ -463,6 +462,8 @@ namespace BSQON
                 }
             }
         }
+
+        bool isKeyType(TypeKey tkey) const;
     };
 
     void loadAssembly(json j);

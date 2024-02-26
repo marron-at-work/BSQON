@@ -168,7 +168,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 "/"         { BEGIN(REGEX); string_buf_bs.len = 0; ByteStringStoreChar('/'); }
 }
 <REGEX>{
-"/"[a|p|r]  { BEGIN(INITIAL); ByteStringStoreChar('/'); ByteStringStoreChar(yytext[1]); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_REGEX; }
+"/"[ar]?    { BEGIN(INITIAL); ByteStringStoreText(yytext, yyleng); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_REGEX; }
 <<EOF>>     { BEGIN(INITIAL); yyerror("Unclosed Regex"); return YYEOF; }
 \n          { yyerror("Newline in Regex"); return YYerror; }
 [!-~ \t]    { ByteStringStoreChar(yytext[0]); }

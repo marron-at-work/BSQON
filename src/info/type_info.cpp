@@ -116,11 +116,6 @@ namespace BSQON
                 });
                 return new RecordType(entries);
             }
-            case TypeTag::TYPE_ELIST: {
-                std::vector<TypeKey> entries;
-                std::transform(j["entries"].begin(), j["entries"].end(), std::back_inserter(entries), [](const json& jv) { return jv.get<TypeKey>(); });
-                return new EListType(entries);
-            }
             case TypeTag::TYPE_STD_ENTITY: {
                 std::vector<EntityTypeFieldEntry> fields;
                 std::transform(j["fields"].begin(), j["fields"].end(), std::back_inserter(fields), [](const json& jv) { 
@@ -265,6 +260,53 @@ namespace BSQON
             std::transform(rs.begin(), rs.end(), std::inserter(rset, rset.end()), [](const json& jv) { return jv.get<TypeKey>(); });
             assembly.recursiveSets.push_back(rset);
         });
+    }
+
+    std::vector<TypeKey> g_primitiveKeyTypes = {
+        "None",
+        "Bool",
+        "Int",
+        "Nat",
+        "BigInt",
+        "BigNat",
+        "String",
+        "AsciiString",
+        "UTCDateTime",
+        "PlainDate",
+        "PlainTime",
+        "TickTime",
+        "LogicalTime",
+        "ISOTimeStamp",
+        "UUIDv4",
+        "UUIDv7",
+        "SHAContentHash",
+        "Regex",
+        "ASCIIRegex",
+        "ResourceRegex",
+        "Path",
+        "PathFragment",
+        "PathGlob"
+    };
+
+    bool AssemblyInfo::isKeyType(TypeKey tkey) const
+    {
+        auto ttype = this->resolveType(tkey);
+
+        if(ttype->tag == TypeTag::TYPE_PRIMITIVE) {
+            return std::find(g_primitiveKeyTypes.begin(), g_primitiveKeyTypes.end(), tkey) != g_primitiveKeyTypes.end();
+        }
+        else if(ttype->tag == TypeTag::TYPE_ENUM) {
+            return true;
+        }
+        else if(ttype->tag == TypeTag::TYPE_STRING_OF || ttype->tag == TypeTag::TYPE_ASCII_STRING_OF) {
+            return true;
+        }
+        else if(ttype->tag == TypeTag::TYPE_TYPE_DECL) {
+            return this->isKeyType(static_cast<const TypedeclType*>(ttype)->oftype);
+        }
+        else {
+            return false;
+        }
     }
 
     void loadAssembly(json j)
