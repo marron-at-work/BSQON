@@ -85,6 +85,7 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
 
 "false"     { return KW_FALSE; }
 
+"$npos"     { return KW_NPOS; }
 "$src"      { return KW_SRC; }
 "none"      { return KW_NONE; }
 "true"      { return KW_TRUE; } 

@@ -6,6 +6,8 @@
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
+#include "../../build/include/brex/common.h"
+
 namespace BSQON
 {
     class SourcePos
@@ -26,7 +28,7 @@ namespace BSQON
         Value(const Type* vtype, SourcePos spos) : vtype(vtype), spos(spos) { ; }
         virtual ~Value() = default;
 
-        virtual std::string toString() const = 0;
+        virtual std::u8string toString() const = 0;
 
         virtual bool isErrorValue() const
         {
@@ -84,6 +86,26 @@ namespace BSQON
                 return *mmi.first < *mmi.second ? -1 : 1;
             }
         }
+
+        static std::u8string tailingFloatZeroHelper(std::u8string sstr, const std::u8string suffix)
+        {
+            //TODO: deal with E notation
+
+            if(std::find(sstr.cbegin(), sstr.cend(), u8'.') == sstr.cend()) {
+                return sstr + u8".0" + suffix;
+            }
+            else {
+                while(sstr.back() == u8'0') {
+                   sstr.pop_back();
+                }
+
+                if(sstr.back() == u8'.') {
+                    sstr.push_back(u8'0');
+                }
+
+                return sstr + suffix;
+            }
+        }
     };
 
     class ErrorValue : public Value
@@ -92,9 +114,9 @@ namespace BSQON
         ErrorValue(const Type* vtype, SourcePos spos) : Value(vtype, spos) { ; }
         virtual ~ErrorValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return "error";
+            return u8"error";
         }
 
         virtual bool isErrorValue() const override
@@ -121,9 +143,9 @@ namespace BSQON
         NoneValue(const Type* vtype, SourcePos spos) : PrimtitiveValue(vtype, spos) { ; }
         virtual ~NoneValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return "none";
+            return u8"none";
         }
     };
 
@@ -133,9 +155,9 @@ namespace BSQON
         NothingValue(const Type* vtype, SourcePos spos) : PrimtitiveValue(vtype, spos) { ; }
         virtual ~NothingValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return "nothing";
+            return u8"nothing";
         }
     };
 
@@ -147,9 +169,9 @@ namespace BSQON
         BoolValue(const Type* vtype, SourcePos spos, bool tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~BoolValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->tv ? "true" : "false";
+            return this->tv ? u8"true" : u8"false";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -179,9 +201,10 @@ namespace BSQON
         NatNumberValue(const Type* vtype, SourcePos spos, uint64_t cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~NatNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::to_string(this->cnv) + "n";
+            auto sstr = std::to_string(this->cnv);
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"n";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -203,9 +226,10 @@ namespace BSQON
         IntNumberValue(const Type* vtype, SourcePos spos, int64_t cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~IntNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::to_string(this->cnv) + "i";
+            auto sstr = std::to_string(this->cnv);
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"i";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -227,9 +251,10 @@ namespace BSQON
         BigNatNumberValue(const Type* vtype, SourcePos spos, boost::multiprecision::mpz_int cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~BigNatNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->cnv.str() + "N";
+            auto sstr = this->cnv.str();
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"N";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -251,9 +276,10 @@ namespace BSQON
         BigIntNumberValue(const Type* vtype, SourcePos spos, boost::multiprecision::mpz_int cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~BigIntNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->cnv.str() + "I";
+            auto sstr = this->cnv.str();
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"I";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -275,27 +301,10 @@ namespace BSQON
         FloatNumberValue(const Type* vtype, SourcePos spos, double cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~FloatNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             auto sstr = std::to_string(this->cnv);
-            if(sstr == "0") {
-                return "0.0f";
-            }
-
-            while(sstr.back() == '0') {
-                sstr.pop_back();
-            }
-
-            if(sstr.back() == '.') {
-                sstr.push_back('0');
-            }
-            
-            if(std::find(sstr.cbegin(), sstr.cend(), '.') != sstr.cend()) {
-                return sstr + "f";
-            }
-            else {
-                return sstr + ".0f";
-            }
+            return Value::tailingFloatZeroHelper(std::u8string(sstr.cbegin(), sstr.cend()), u8"f");
         }
 
         virtual bool isValidForTypedecl() const override
@@ -314,23 +323,10 @@ namespace BSQON
         DecimalNumberValue(const Type* vtype, SourcePos spos, std::string cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~DecimalNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             auto sstr = this->cnv.str();
-            if(sstr == "0") {
-                return "0.0d";
-            }
-
-            while(sstr.back() == '0') {
-                sstr.pop_back();
-            }
-
-            if(std::find(sstr.cbegin(), sstr.cend(), '.') != sstr.cend()) {
-                return sstr + "d";
-            }
-            else {
-                return sstr + ".0d";
-            }
+            return Value::tailingFloatZeroHelper(std::u8string(sstr.cbegin(), sstr.cend()), u8"d");
         }
 
         virtual bool isValidForTypedecl() const override
@@ -347,9 +343,91 @@ namespace BSQON
         RationalNumberValue(const Type* vtype, SourcePos spos, boost::multiprecision::mpq_rational cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
         virtual ~RationalNumberValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->cnv.str() + "R";
+            auto sstr = this->cnv.str();
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"R";
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DecimalDegreeNumberValue : public PrimtitiveValue 
+    {
+    public:
+        //TODO: We may want to refine the representation range a bit
+        boost::multiprecision::cpp_dec_float_50 cnv;
+    
+        DecimalDegreeNumberValue(const Type* vtype, SourcePos spos, std::string cnv) : PrimtitiveValue(vtype, spos), cnv(cnv) { ; }
+        virtual ~DecimalDegreeNumberValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto sstr = this->cnv.str();
+            return Value::tailingFloatZeroHelper(std::u8string(sstr.cbegin(), sstr.cend()), u8"dd");
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class LatLongValue : public PrimtitiveValue 
+    {
+    public:
+        boost::multiprecision::cpp_dec_float_50 latitude;
+        boost::multiprecision::cpp_dec_float_50 longitude;
+    
+        LatLongValue(const Type* vtype, SourcePos spos, std::string latitude, std::string longitude) : PrimtitiveValue(vtype, spos), latitude(latitude), longitude(longitude) { ; }
+        virtual ~LatLongValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto llstr = this->latitude.str();
+            auto latstr = Value::tailingFloatZeroHelper(std::u8string(llstr.cbegin(), llstr.cend()), u8"lat");
+
+            auto lostr = this->longitude.str();
+            auto longstr = Value::tailingFloatZeroHelper(std::u8string(lostr.cbegin(), lostr.cend()), u8"long");
+
+            if(!longstr.starts_with(u8'-') && !longstr.starts_with(u8'+')) {
+                longstr = u8'+' + longstr;
+            }
+
+            return latstr + longstr;
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class ComplexNumberValue : public PrimtitiveValue 
+    {
+    public:
+        double real;
+        double imag;
+    
+        ComplexNumberValue(const Type* vtype, SourcePos spos, double real, double imag) : PrimtitiveValue(vtype, spos), real(real), imag(imag) { ; }
+        virtual ~ComplexNumberValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto rrstr = std::to_string(this->real);
+            auto rstr = Value::tailingFloatZeroHelper(std::u8string(rrstr.cbegin(), rrstr.cend()), u8"");
+
+            auto iistr = std::to_string(this->imag);
+            auto istr = Value::tailingFloatZeroHelper(std::u8string(iistr.cbegin(), iistr.cend()), u8"i");
+
+            if(!istr.starts_with(u8'-') && !istr.starts_with(u8'+')) {
+                istr = u8'+' + istr;
+            }
+
+            return rstr + istr;
         }
 
         virtual bool isValidForTypedecl() const override
@@ -361,16 +439,16 @@ namespace BSQON
     class StringValue : public PrimtitiveValue 
     {
     public:
-        const UnicodeString sv;
+        const brex::UnicodeString sv;
     
         virtual ~StringValue() = default;
 
         static StringValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length);
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            auto ustr = escapeString(this->sv);
-            return "\"" + std::string(ustr.begin(), ustr.end()) + "\"";
+            auto ustr = brex::escapeUnicodeString(this->sv);
+            return u8"\"" + std::u8string(ustr.begin(), ustr.end()) + u8"\"";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -384,22 +462,22 @@ namespace BSQON
         }
 
     private:
-        StringValue(const Type* vtype, SourcePos spos, UnicodeString&& sv) : PrimtitiveValue(vtype, spos), sv(std::move(sv)) { ; }
+        StringValue(const Type* vtype, SourcePos spos, brex::UnicodeString&& sv) : PrimtitiveValue(vtype, spos), sv(std::move(sv)) { ; }
     };
 
     class ASCIIStringValue : public PrimtitiveValue
     {
     public:
-        const std::string sv;
+        const brex::ASCIIString sv;
     
         virtual ~ASCIIStringValue() = default;
 
         static ASCIIStringValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length);
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            auto ustr = escapeASCIIString(this->sv);
-            return "'" + std::string(ustr.begin(), ustr.end()) + "'";
+            auto ustr = brex::escapeASCIIString(this->sv);
+            return u8"'" + std::u8string(ustr.begin(), ustr.end()) + u8"'";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -413,7 +491,57 @@ namespace BSQON
         }
 
     private:
-        ASCIIStringValue(const Type* vtype, SourcePos spos, std::string&& sv) : PrimtitiveValue(vtype, spos), sv(std::move(sv)) { ; }
+        ASCIIStringValue(const Type* vtype, SourcePos spos, brex::ASCIIString&& sv) : PrimtitiveValue(vtype, spos), sv(std::move(sv)) { ; }
+    };
+
+    class StringSliceValue : public PrimtitiveValue 
+    {
+    public:
+        const brex::UnicodeString* sv;
+        const int64_t firstIndex;
+        const int64_t lastIndex;
+    
+        StringSliceValue(const Type* vtype, SourcePos spos, const brex::UnicodeString* sv, int64_t firstIndex, int64_t lastIndex) : PrimtitiveValue(vtype, spos), sv(sv), firstIndex(firstIndex), lastIndex(lastIndex) { ; }
+        virtual ~StringSliceValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto ustr = brex::escapeUnicodeString(*this->sv);
+            auto fstr = std::to_string(this->firstIndex);
+            auto lstr = std::to_string(this->lastIndex);
+
+            return std::u8string(ustr.cbegin(), ustr.cend()) + u8'[' + std::u8string(fstr.cbegin(), fstr.cend()) + u8":" + std::u8string(lstr.cbegin(), lstr.cend()) + u8']';
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class ASCIIStringSliceValue : public PrimtitiveValue 
+    {
+    public:
+        const brex::ASCIIString* sv;
+        const int64_t firstIndex;
+        const int64_t lastIndex;
+    
+        ASCIIStringSliceValue(const Type* vtype, SourcePos spos, const brex::ASCIIString* sv, int64_t firstIndex, int64_t lastIndex) : PrimtitiveValue(vtype, spos), sv(sv), firstIndex(firstIndex), lastIndex(lastIndex) { ; }
+        virtual ~ASCIIStringSliceValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto ustr = brex::escapeASCIIString(*this->sv);
+            auto fstr = std::to_string(this->firstIndex);
+            auto lstr = std::to_string(this->lastIndex);
+
+            return std::u8string(ustr.cbegin(), ustr.cend()) + u8'[' + std::u8string(fstr.cbegin(), fstr.cend()) + u8":" + std::u8string(lstr.cbegin(), lstr.cend()) + u8']';
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
     };
 
     class ByteBufferValue : public PrimtitiveValue
@@ -426,9 +554,18 @@ namespace BSQON
         static uint8_t extractByteValue(char hb, char lb);
         static ByteBufferValue* createFromParse(const Type* vtype, SourcePos spos, const char* chars);
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return "0x[" + std::string(this->bytes.begin(), this->bytes.end()) + "]";
+            std::u8string bstr;
+            for(size_t i = 0; i < this->bytes.size(); ++i) {
+                char hb = (this->bytes[i] >> 4) & 0x0F;
+                char lb = this->bytes[i] & 0x0F;
+
+                bstr.push_back(hb < 10 ? hb + u8'0' : hb - 10 + u8'A');
+                bstr.push_back(lb < 10 ? lb + u8'0' : lb - 10 + u8'A');
+            }
+
+            return u8"0x[" + bstr + u8"]";
         }
 
     private:

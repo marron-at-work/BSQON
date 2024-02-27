@@ -145,7 +145,7 @@ BSQON_AST_NODE_DECLARE_1(LiteralStringValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DECLARE_1(NameValue, const char*, data)
 BSQON_AST_NODE_DECLARE_2(StringOfValue, struct ByteString*, data, struct BSQON_AST_Node*, type)
-BSQON_AST_NODE_DECLARE_3(StringSliceValue, struct ByteString*, data, const char*, start, const char*, end)
+BSQON_AST_NODE_DECLARE_3(StringSliceValue, struct ByteString*, data, struct BSQON_AST_Node*, start, struct BSQON_AST_Node*, end)
 BSQON_AST_NODE_DECLARE_2(PathValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DECLARE_2(TypedLiteralValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DECLARE_2(MapEntryValue, struct BSQON_AST_Node*, key, struct BSQON_AST_Node*, value)

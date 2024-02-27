@@ -62,6 +62,7 @@ int errorcount = 0;
 %token KW_OK "ok"
 %token KW_ERR "err"
 
+%token KW_NPOS "$npos"
 %token KW_SRC "$src"
 %token KW_LET "let"
 %token KW_IN "in"
@@ -125,7 +126,7 @@ int errorcount = 0;
 %type <bsqon_named_type_list_entry> bsqonnametypel_entry
 %type <bsqon_named_type_list> bsqonnametypel
 
-%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonstringview bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
+%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonidx bsqonstringview bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
 %type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval bsqonroot
 %type <bsqon_value_list> bsqonvall
 
@@ -244,6 +245,7 @@ bsqonunspecvar:
 
 bsqonidentifier: 
    KW_SRC       { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$src"); }
+   | KW_NPOS     { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$npos"); }
    | TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), $1); }
 ;
 
@@ -256,13 +258,17 @@ bsqonstringof:
    | TOKEN_ASCII_STRING bsqonnominaltype { $$ = BSQON_AST_NODE_CONS(StringOfValue, BSQON_AST_TAG_ASCIIStringOfValue, MK_SPOS_R(@1, @2), $1, $2); }
 ;
 
+bsqonidx: 
+   bsqonliteral | bsqonidentifier | bsqonscopedidentifier { $$ = $1; }
+;
+
 bsqonstringview:
-   TOKEN_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
-   | TOKEN_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
-   | TOKEN_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
-   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ','  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
-   | TOKEN_ASCII_STRING '[' ',' TOKEN_NUMBERINO  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
-   | TOKEN_ASCII_STRING '[' TOKEN_NUMBERINO ',' TOKEN_NUMBERINO ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
+   TOKEN_STRING '[' bsqonidx SYM_COLON  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
+   | TOKEN_STRING '[' SYM_COLON bsqonidx  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
+   | TOKEN_STRING '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
+   | TOKEN_ASCII_STRING '[' bsqonidx SYM_COLON  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
+   | TOKEN_ASCII_STRING '[' SYM_COLON bsqonidx  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
+   | TOKEN_ASCII_STRING '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_ASCIIStringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
 ;
 
 bsqonpath:
@@ -359,7 +365,7 @@ bsqonval:
 ;
 
 bsqonletexp:
-  '(' KW_LET TOKEN_IDENTIFIER ':' bsqontype SYM_EQUALS bsqonval KW_IN bsqonval ')' { $$ = BSQON_AST_NODE_CONS(LetInValue, BSQON_AST_TAG_LetInValue, MK_SPOS_R(@1, @10), $3, $5, $7, $9); }
+  '(' KW_LET TOKEN_IDENTIFIER SYM_COLON bsqontype SYM_EQUALS bsqonval KW_IN bsqonval ')' { $$ = BSQON_AST_NODE_CONS(LetInValue, BSQON_AST_TAG_LetInValue, MK_SPOS_R(@1, @10), $3, $5, $7, $9); }
 ;
 
 bsqonaccess:
