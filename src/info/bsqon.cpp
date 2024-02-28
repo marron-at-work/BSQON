@@ -199,13 +199,13 @@ namespace BSQON
                     return LogicalTimeValue::keyCompare(static_cast<const LogicalTimeValue*>(v1), static_cast<const LogicalTimeValue*>(v2));
                 }
                 else if(dtype == "Regex") {
-                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                    return UnicodeRegexValue::keyCompare(static_cast<const UnicodeRegexValue*>(v1), static_cast<const UnicodeRegexValue*>(v2));
                 }
                 else if(dtype == "ASCIIRegex") {
-                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                    return ASCIIRegexValue::keyCompare(static_cast<const ASCIIRegexValue*>(v1), static_cast<const ASCIIRegexValue*>(v2));
                 }
-                else if(dtype == "ResourceRegex") {
-                    return RegexValue::keyCompare(static_cast<const RegexValue*>(v1), static_cast<const RegexValue*>(v2));
+                else if(dtype == "PathRegex") {
+                    return PathRegexValue::keyCompare(static_cast<const PathRegexValue*>(v1), static_cast<const PathRegexValue*>(v2));
                 }
                 else {
                     //should be ISOTimestamp

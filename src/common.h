@@ -62,34 +62,40 @@ namespace BSQON
 
     struct DeltaDateTime
     {
-        //Leading value is always in range -- e.g. if year is set then month must be +-11, etc.
+        //Leading value is always in range -- e.g. if year is set then month must be 0-11, etc.
         int16_t year;   
         int16_t month;   
         int32_t day;     
         int32_t hour;    
         int32_t min;     
         int32_t sec;     
+
+        char8_t sign;    // '+' or '-'
     };
 
     struct DeltaPlainDate
     {
-        //Leading value is always in range -- e.g. if year is set then month must be +-11, etc.
+        //Leading value is always in range -- e.g. if year is set then month must be 0-11, etc.
         int16_t year;   
         int16_t month;   
         int32_t day;     
+
+        char8_t sign;    // '+' or '-'
     };
 
     struct DeltaPlainTime
     {
-        //Leading value is always in range -- e.g. if hour is set then min must be +-59, etc.
+        //Leading value is always in range -- e.g. if hour is set then min must be 0-59, etc.
         int32_t hour;
         int32_t min;
         int32_t sec;
+
+        char8_t sign;    // '+' or '-'
     };
 
-    struct DeltaISOTimeStamp
+    struct DeltaFull
     {
-        //Leading value is always in range -- e.g. if year is set then month must be +-11, etc.
+        //Leading value is always in range -- e.g. if year is set then month must be 0-11, etc.
         int16_t year;   
         int32_t month; 
         int32_t day;   
@@ -97,6 +103,8 @@ namespace BSQON
         int32_t min; 
         int32_t sec;   
         int32_t millis; 
+
+        char8_t sign;    // '+' or '-'
     };
 }
 

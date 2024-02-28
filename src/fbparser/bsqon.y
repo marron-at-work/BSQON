@@ -113,6 +113,7 @@ int errorcount = 0;
 
 %token <str> TOKEN_FULL_DELTA "delta"
 %token <str> TOKEN_SECONDS_DELTA "delta in seconds"
+%token <str> TOKEN_INCREMENT_DELTA "dimentionless increment"
 
 %token <str> TOKEN_IDENTIFIER "identifier"
 %token <str> TOKEN_TYPE_COMPONENT "type name"
@@ -237,6 +238,7 @@ bsqonliteral:
    | TOKEN_DELTA_PLAIN_TIME  { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainTimeValue, MK_SPOS_S(@1), $1); }
    | TOKEN_FULL_DELTA        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaFullValue, MK_SPOS_S(@1), $1); }
    | TOKEN_SECONDS_DELTA     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaSecondsValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_INCREMENT_DELTA   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaIncrementValue, MK_SPOS_S(@1), $1); }
 ;
 
 bsqonunspecvar: 

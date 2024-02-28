@@ -89,6 +89,7 @@ const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node)
         case BSQON_AST_TAG_DeltaPlainTimeValue: return "DeltaPlainTimeValue";
         case BSQON_AST_TAG_DeltaFullValue: return "DeltaFullValue";
         case BSQON_AST_TAG_DeltaSecondsValue: return "DeltaSecondsValue";
+        case BSQON_AST_TAG_DeltaIncrementValue: return "DeltaIncrementValue";
         case BSQON_AST_TAG_IdentifierValue: return "IdentifierValue";
         case BSQON_AST_TAG_UnspecIdentifierValue: return "UnspecIdentifierValue";
         case BSQON_AST_TAG_StringOfValue: return "StringOfValue";
@@ -232,7 +233,8 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
     case BSQON_AST_TAG_DeltaPlainDateValue:
     case BSQON_AST_TAG_DeltaPlainTimeValue:
     case BSQON_AST_TAG_DeltaFullValue:
-    case BSQON_AST_TAG_DeltaSecondsValue: {
+    case BSQON_AST_TAG_DeltaSecondsValue:
+    case BSQON_AST_TAG_DeltaIncrementValue: {
         const struct BSQON_AST_NODE(LiteralStandardValue)* nn = BSQON_AST_NODE_AS(LiteralStandardValue, node);
         printf("%s", nn->data);
         break;

@@ -7,6 +7,7 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
 #include "../../build/include/brex/common.h"
+#include "../../build/include/brex/regex/brex.h"
 
 namespace BSQON
 {
@@ -581,9 +582,9 @@ namespace BSQON
         UUIDv4Value(const Type* vtype, SourcePos spos, std::string uuidstr) : PrimtitiveValue(vtype, spos), uuidstr(uuidstr) { ; }
         virtual ~UUIDv4Value() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::string("uuid4{") + this->uuidstr + "}";
+            return u8"uuid4{" + std::u8string(this->uuidstr.cbegin(), this->uuidstr.cend()) + u8'}';
         }
 
         virtual bool isValidForTypedecl() const override
@@ -606,9 +607,9 @@ namespace BSQON
         UUIDv7Value(const Type* vtype, SourcePos spos, std::string uuidstr) : PrimtitiveValue(vtype, spos), uuidstr(uuidstr) { ; }
         virtual ~UUIDv7Value() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::string("uuid7{") + this->uuidstr + "}";
+            return u8"uuid7{" + std::u8string(this->uuidstr.cbegin(), this->uuidstr.cend()) + u8'}';
         }
 
         virtual bool isValidForTypedecl() const override
@@ -631,9 +632,9 @@ namespace BSQON
         SHAContentHashValue(const Type* vtype, SourcePos spos, std::string hashstr) : PrimtitiveValue(vtype, spos), hashstr(hashstr) { ; }
         virtual ~SHAContentHashValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::string("sha3") + "{" + this->hashstr + "}";
+            return u8"sha3{" + std::u8string(this->hashstr.cbegin(), this->hashstr.cend()) + u8'}';
         }
 
         virtual bool isValidForTypedecl() const override
@@ -655,12 +656,12 @@ namespace BSQON
         DateTimeValue(const Type* vtype, SourcePos spos, DateTime tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~DateTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             char buf[64];
-            sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u{%s}", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec, this->tv.tzdata);
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u{%s}", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec, this->tv.tzdata);
             
-            return std::string(buf);
+            return std::u8string(buf, buf + ccount);
         }
 
         virtual bool isValidForTypedecl() const override
@@ -677,12 +678,12 @@ namespace BSQON
         UTCDateTimeValue(const Type* vtype, SourcePos spos, UTCDateTime tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~UTCDateTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             char buf[64];
-            sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2uZ", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec);
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2uZ", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec);
             
-            return std::string(buf);
+            return std::u8string(buf, buf + ccount);
         }
 
         virtual bool isValidForTypedecl() const override
@@ -707,12 +708,12 @@ namespace BSQON
         PlainDateValue(const Type* vtype, SourcePos spos, PlainDate tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~PlainDateValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             char buf[64];
-            sprintf(buf, "%.4u-%.2u-%.2u", this->tv.year, this->tv.month, this->tv.day);
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2u", this->tv.year, this->tv.month, this->tv.day);
             
-            return std::string(buf);
+            return std::u8string(buf, buf + ccount);
         }
 
         virtual bool isValidForTypedecl() const override
@@ -737,12 +738,12 @@ namespace BSQON
         PlainTimeValue(const Type* vtype, SourcePos spos, PlainTime tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~PlainTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             char buf[64];
-            sprintf(buf, "%.2u:%.2u:%.2u", this->tv.hour, this->tv.min, this->tv.sec);
+            int ccount = sprintf(buf, "%.2u:%.2u:%.2u", this->tv.hour, this->tv.min, this->tv.sec);
             
-            return std::string(buf);
+            return std::u8string(buf, buf + ccount);
         }
 
         virtual bool isValidForTypedecl() const override
@@ -767,9 +768,10 @@ namespace BSQON
         LogicalTimeValue(const Type* vtype, SourcePos spos, uint64_t tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~LogicalTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::to_string(this->tv);
+            auto sstr = std::to_string(this->tv);
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"l";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -791,9 +793,10 @@ namespace BSQON
         TickTimeValue(const Type* vtype, SourcePos spos, uint64_t tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~TickTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return std::to_string(this->tv);
+            auto sstr = std::to_string(this->tv);
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"t";
         }
 
         virtual bool isValidForTypedecl() const override
@@ -815,12 +818,12 @@ namespace BSQON
         ISOTimeStampValue(const Type* vtype, SourcePos spos, ISOTimeStamp tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
         virtual ~ISOTimeStampValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
             char buf[64];
-            sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u.%.3uZ", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec, this->tv.millis);
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u.%.3uZ", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec, this->tv.millis);
             
-            return std::string(buf);
+            return std::u8string(buf, buf + ccount);
         }
 
         virtual bool isValidForTypedecl() const override
@@ -837,41 +840,216 @@ namespace BSQON
         }
     };
 
-    class RegexValue : public PrimtitiveValue 
+    class DeltaDateTimeValue : public PrimtitiveValue 
     {
     public:
-        //This is a bit tricky as we map from the string in the BSQON format to the statically declared regex in the assembly.
-        //TODO: we should normalize this (by parsing and then formatting) to eliminate any simple differences (although we are not going to do regex equality)
-        const BSQRegex* tv;
+        const DeltaDateTime tv;
     
-        RegexValue(const Type* vtype, SourcePos spos, BSQRegex* tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
-        virtual ~RegexValue() = default;
+        DeltaDateTimeValue(const Type* vtype, SourcePos spos, DeltaDateTime tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaDateTimeValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->tv->toString();
+            char buf[64];
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec);
+            
+            return this->tv.sign + std::u8string(buf, buf + ccount);
         }
 
-        static int keyCompare(const RegexValue* v1, const RegexValue* v2)
+        virtual bool isValidForTypedecl() const override
         {
-            return Value::keyCompareImplStringish(v1->tv->toString(), v2->tv->toString());
+            return true;
+        }
+    };
+
+    class DeltaPlainDateValue : public PrimtitiveValue 
+    {
+    public:
+        const DeltaPlainDate tv;
+    
+        DeltaPlainDateValue(const Type* vtype, SourcePos spos, DeltaPlainDate tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaPlainDateValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            char buf[64];
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2u", this->tv.year, this->tv.month, this->tv.day);
+            
+            return this->tv.sign + std::u8string(buf, buf + ccount);
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DeltaPlainTimeValue : public PrimtitiveValue 
+    {
+    public:
+        const DeltaPlainTime tv;
+    
+        DeltaPlainTimeValue(const Type* vtype, SourcePos spos, DeltaPlainTime tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaPlainTimeValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            char buf[64];
+            int ccount = sprintf(buf, "%.2u:%.2u:%.2u", this->tv.hour, this->tv.min, this->tv.sec);
+            
+            return this->tv.sign + std::u8string(buf, buf + ccount);
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DeltaFullValue : public PrimtitiveValue 
+    {
+    public:
+        const DeltaFull tv;
+    
+        DeltaFullValue(const Type* vtype, SourcePos spos, DeltaFull tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaFullValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            char buf[64];
+            int ccount = sprintf(buf, "%.4u-%.2u-%.2uT%.2u:%.2u:%.2u.%.3u", this->tv.year, this->tv.month, this->tv.day, this->tv.hour, this->tv.min, this->tv.sec, this->tv.millis);
+            
+            return this->tv.sign + std::u8string(buf, buf + ccount);
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DeltaSecondsValue : public PrimtitiveValue 
+    {
+    public:
+        const int64_t tv;
+    
+        DeltaSecondsValue(const Type* vtype, SourcePos spos, int64_t tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaSecondsValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto sstr = std::to_string(this->tv);
+            if(this->tv >= 0) {
+                sstr = "+" + sstr;
+            }
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"ds";
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DeltaIncrementValue : public PrimtitiveValue 
+    {
+    public:
+        const int64_t tv;
+    
+        DeltaIncrementValue(const Type* vtype, SourcePos spos, int64_t tv) : PrimtitiveValue(vtype, spos), tv(tv) { ; }
+        virtual ~DeltaIncrementValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto sstr = std::to_string(this->tv);
+            if(this->tv >= 0) {
+                sstr = "+" + sstr;
+            }
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"di";
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class UnicodeRegexValue : public PrimtitiveValue 
+    {
+    public:
+        const brex::Regex* tv;
+        const std::u8string normalizedre;
+    
+        UnicodeRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
+        virtual ~UnicodeRegexValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            return this->normalizedre;
+        }
+
+        static int keyCompare(const UnicodeRegexValue* v1, const UnicodeRegexValue* v2)
+        {
+            return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
+        }
+    };
+
+    class ASCIIRegexValue : public PrimtitiveValue 
+    {
+    public:
+        const brex::Regex* tv;
+        const std::u8string normalizedre;
+    
+        ASCIIRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
+        virtual ~ASCIIRegexValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            return this->normalizedre;
+        }
+
+        static int keyCompare(const ASCIIRegexValue* v1, const ASCIIRegexValue* v2)
+        {
+            return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
+        }
+    };
+
+    class PathRegexValue : public PrimtitiveValue 
+    {
+    public:
+        const brex::Regex* tv;
+        const std::u8string normalizedre;
+    
+        PathRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
+        virtual ~PathRegexValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            return this->normalizedre;
+        }
+
+        static int keyCompare(const PathRegexValue* v1, const PathRegexValue* v2)
+        {
+            return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
         }
     };
 
     class StringOfValue : public Value
     {
     public:
-        const UnicodeString sv;
+        const brex::UnicodeString sv;
 
         virtual ~StringOfValue() = default;
 
         //null if validator fails
-        static StringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const BSQRegex* validator);
+        static StringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator);
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            auto ustr = escapeString(this->sv);
-            return "\"" + std::string(ustr.begin(), ustr.end()) + "\"" + this->vtype->tkey;
+            auto oftype = ((const StringOfType*)this->vtype)->oftype;
+
+            auto ustr = brex::escapeUnicodeString(this->sv);
+            return u8"\"" + std::u8string(ustr.begin(), ustr.end()) + u8"\"" + std::u8string(oftype.cbegin(), oftype.cend());
         }
 
         const StringOfType* getStringOfType() const
@@ -890,23 +1068,25 @@ namespace BSQON
         }
 
     private:
-        StringOfValue(const Type* vtype, SourcePos spos, UnicodeString&& sv) : Value(vtype, spos), sv(std::move(sv)) { ; }
+        StringOfValue(const Type* vtype, SourcePos spos, brex::UnicodeString&& sv) : Value(vtype, spos), sv(std::move(sv)) { ; }
     };
 
     class ASCIIStringOfValue : public Value
     {
     public:
-        const std::string sv;
+        const brex::ASCIIString sv;
 
         virtual ~ASCIIStringOfValue() = default;
 
         //null if validator fails
-        static ASCIIStringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const BSQRegex* validator);
+        static ASCIIStringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator);
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            auto ustr = escapeASCIIString(this->sv);
-            return "'" + std::string(ustr.begin(), ustr.end()) + "'";
+            auto oftype = ((const StringOfType*)this->vtype)->oftype;
+
+            auto ustr = brex::escapeASCIIString(this->sv);
+            return u8"'" + std::u8string(ustr.begin(), ustr.end()) + u8"'" + std::u8string(oftype.cbegin(), oftype.cend());
         }
 
         const ASCIIStringOfType* getASCIIStringOfType() const
@@ -936,9 +1116,9 @@ namespace BSQON
         SomethingValue(const Type* vtype, SourcePos spos, const Value* v) : Value(vtype, spos), v(v) { ; }
         virtual ~SomethingValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->vtype->tkey + "{" + this->v->toString() + "}";
+            return std::u8string(this->vtype->tkey.cbegin(), this->vtype->tkey.cend()) + u8'{' + this->v->toString() + u8'}';
         }
 
         const SomethingType* getSomethingType() const
@@ -955,9 +1135,9 @@ namespace BSQON
         OkValue(const Type* vtype, SourcePos spos, const Value* v) : Value(vtype, spos), v(v) { ; }
         virtual ~OkValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->vtype->tkey + "{" + this->v->toString() + "}";
+            return std::u8string(this->vtype->tkey.cbegin(), this->vtype->tkey.cend()) + u8'{' + this->v->toString() + u8'}';
         }
 
         const OkType* getOkType() const
@@ -974,9 +1154,9 @@ namespace BSQON
         ErrValue(const Type* vtype, SourcePos spos, const Value* v) : Value(vtype, spos), v(v) { ; }
         virtual ~ErrValue() = default;
 
-        virtual std::string toString() const override
+        virtual std::u8string toString() const override
         {
-            return this->vtype->tkey + "{" + this->v->toString() + "}";
+            return std::u8string(this->vtype->tkey.cbegin(), this->vtype->tkey.cend()) + u8'{' + this->v->toString() + u8'}';
         }
 
         const ErrorType* getErrType() const
@@ -988,7 +1168,7 @@ namespace BSQON
     class PathValue : public Value
     {
     public:
-        const std::string sv;
+        const xxxx sv;
 
         virtual ~PathValue() = default;
 
