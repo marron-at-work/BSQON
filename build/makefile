@@ -1,9 +1,10 @@
 MAKE_PATH=$(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-BUILD_DIR=$(MAKE_PATH)/../
-BIN_DIR=$(MAKE_PATH)/../../bin/
-SRC_DIR=$(MAKE_PATH)/../../src/
+BUILD_DIR=$(MAKE_PATH)/
+BIN_DIR=$(MAKE_PATH)/../bin/
+SRC_DIR=$(MAKE_PATH)/../src/
 
 PARSER_GEN_DIR=$(SRC_DIR)fbparser/
+INFO_DIR=$(SRC_DIR)info/
 PARSER_DIR=$(SRC_DIR)parser/
 
 OUT_EXE=$(BUILD_DIR)output/
@@ -41,37 +42,44 @@ PARSER_HEADERS=$(PARSER_GEN_DIR)bytestring.h $(PARSER_GEN_DIR)bsqon_ast_common.h
 PARSER_SOURCES=$(PARSER_GEN_DIR)bytestring.c $(PARSER_GEN_DIR)bsqon_ast_common.c $(PARSER_GEN_DIR)bsqon_ast.c $(OUT_OBJ)bsqon.tab.c $(OUT_OBJ)lex.yy.c
 PARSER_OBJS=$(OUT_OBJ)bytestring.o $(OUT_OBJ)bsqon_ast_common.o $(OUT_OBJ)bsqon_ast.o $(OUT_OBJ)bsqon.tab.o $(OUT_OBJ)lex.yy.o
 
-BSQON_HEADERS=
-#$(SRC_DIR)../common.h $(SRC_DIR)../regex/bsqregex.h $(SRC_DIR)../regex/bsqpath.h $(SRC_DIR)../info/type_info.h $(SRC_DIR)../info/bsqon.h $(SRC_DIR)bsqon_parse.h
-BSQON_SOURCES=
-#$(SRC_DIR)../common.cpp $(SRC_DIR)../regex/bsqregex.cpp $(SRC_DIR)../info/type_info.cpp $(SRC_DIR)../info/bsqon.cpp $(SRC_DIR)bsqon_parse.cpp $(SRC_DIR)bsqon_main.cpp
+BSQON_HEADERS=$(SRC_DIR)common.h $(INFO_DIR)type_info.h $(INFO_DIR)bsqon.h
+BSQON_SOURCES=$(INFO_DIR)type_info.cpp $(INFO_DIR)bsqon.cpp 
+BSQON_OBJS=$(OUT_OBJ)type_info.o $(OUT_OBJ)bsqon.o
 
 MAKEFLAGS += -j4
 
 all: bsqon
 
-bsqon: $(BSQON_HEADERS) $(BSQON_SOURCES) $(PARSER_OBJS)
+bsqon: $(BSQON_HEADERS) $(BSQON_SOURCES) $(PARSER_OBJS) $(BSQON_OBJS)
 	@mkdir -p $(BIN_DIR)
 	@echo "Building bsqon"
 # $(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(BSQON_SOURCES) $(PARSER_OBJS) -lfl -lgmp
 
-$(OUT_OBJ)bytestring.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
+$(OUT_OBJ)bsqon.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(INFO_DIR)bsqon.cpp
+	@mkdir -p $(OUT_OBJ)
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)bsqon.o -c $(INFO_DIR)bsqon.cpp
+
+$(OUT_OBJ)type_info.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(INFO_DIR)type_info.cpp
+	@mkdir -p $(OUT_OBJ)
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)type_info.o -c $(INFO_DIR)type_info.cpp
+
+$(OUT_OBJ)bytestring.o: $(PARSER_HEADERS) $(PARSER_GEN_DIR)bytestring.c
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)bytestring.o -c $(PARSER_GEN_DIR)bytestring.c
 
-$(OUT_OBJ)bsqon_ast_common.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
+$(OUT_OBJ)bsqon_ast_common.o: $(PARSER_HEADERS) $(PARSER_GEN_DIR)bsqon_ast_common.c
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast_common.o -c $(PARSER_GEN_DIR)bsqon_ast_common.c
 
-$(OUT_OBJ)bsqon_ast.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
+$(OUT_OBJ)bsqon_ast.o: $(PARSER_HEADERS) $(PARSER_GEN_DIR)bsqon_ast.c
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon_ast.o -c $(PARSER_GEN_DIR)bsqon_ast.c
 
-$(OUT_OBJ)bsqon.tab.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
+$(OUT_OBJ)bsqon.tab.o: $(PARSER_HEADERS) $(OUT_OBJ)bsqon.tab.c
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)bsqon.tab.o -c $(OUT_OBJ)bsqon.tab.c
 
-$(OUT_OBJ)lex.yy.o: $(PARSER_HEADERS) $(PARSER_SOURCES)
+$(OUT_OBJ)lex.yy.o: $(PARSER_HEADERS) $(OUT_OBJ)lex.yy.c
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)lex.yy.o -c $(OUT_OBJ)lex.yy.c
 

@@ -401,8 +401,8 @@ namespace BSQON
         std::map<std::string, NamespaceDecl*> namespaces;
         std::map<TypeKey, Type*> typerefs;
         std::vector<std::set<TypeKey>> recursiveSets;
-        std::map<TypeKey, std::string> bsqonRegexValidators;
-        std::map<TypeKey, std::string> bsqonPathValidators;
+        std::map<TypeKey, brex::Regex*> bsqonRegexValidators;
+        std::map<TypeKey, bpath::PathGlob*> bsqonPathValidators;
 
         AssemblyInfo() : aliasmap(), namespaces(), typerefs(), recursiveSets(), bsqonRegexValidators(), bsqonPathValidators()
         { 
