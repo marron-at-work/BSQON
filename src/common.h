@@ -19,7 +19,7 @@ typedef nlohmann::json json;
 #include "../build/include/brex/path/path_fragment.h"
 #include "../build/include/brex/path/path_glob.h"
 
-namespace BSQON
+namespace bsqon
 {
     struct DateTime
     {

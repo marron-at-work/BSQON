@@ -1,6 +1,6 @@
 #include "bsqon.h"
 
-namespace BSQON
+namespace bsqon
 {
     StringValue* StringValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {

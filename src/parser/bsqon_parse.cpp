@@ -2,12 +2,16 @@
 
 #include <inttypes.h>
 
-namespace BSQON
+namespace bsqon
 {
     std::vector<std::string> s_coreTypes = {
-        "None", "Bool", "Int", "Nat", "BigInt", "BigNat", "Rational", "Float", "Decimal", "String", "ASCIIString",
-        "ByteBuffer", "DateTime", "UTCDateTime", "PlainDate", "PlainTime", "TickTime", "LogicalTime", "ISOTimeStamp", "UUIDv4", "UUIDv7", "SHAContentHash", 
-        "Regex", "Nothing"
+        "None", "Nothing", "Bool", 
+        "Int", "Nat", "BigInt", "BigNat", "Rational", "Float", "Decimal", "DecimalDegree", "LatLongCoordinate", "Complex",
+        "String", "ASCIIString", "StringView", "ASCIIStringView" "ByteBuffer", 
+        "DateTime", "UTCDateTime", "PlainDate", "PlainTime", "TickTime", "LogicalTime", "ISOTimeStamp", 
+        "UUIDv4", "UUIDv7", "SHAContentHash", 
+        "DataTimeDelta", "PlainDateDelta", "PlainTimeDelta", "TimestampDelta", "IncrementDelta", "SecondsDelta",
+        "UnicodeRegex", "ASCIIRegex", "PathRegex" 
     };
 
     std::vector<TypeTag> s_okTypeTaggedTags = {
@@ -50,13 +54,13 @@ namespace BSQON
     bool Parser::isValidNat(const std::string nv, int64_t& vv)
     {
         auto ecount = sscanf(nv.c_str(), "%" SCNu64, &vv);
-        return ecount == 1 && 0 <= vv && vv <= Type::MAX_SAFE_NUMBER; 
+        return ecount == 1 && 0 <= vv && vv <= Type::MAX_SAFE_NAT; 
     }
 
     bool Parser::isValidInt(const std::string nv, int64_t& vv)
     {
         auto ecount = sscanf(nv.c_str(), "%" SCNd64, &vv);
-        return ecount == 1 && Type::MIN_SAFE_NUMBER <= vv && vv <= Type::MAX_SAFE_NUMBER;
+        return ecount == 1 && Type::MIN_SAFE_INT <= vv && vv <= Type::MAX_SAFE_INT;
     }
 
     bool Parser::isValidFloat(const std::string nv, double& vv)

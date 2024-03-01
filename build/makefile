@@ -26,13 +26,13 @@ CPPFLAGS=${CPPFLAGS_OPT.${BUILD}} ${CPP_STDFLAGS}
 CPPFLAGS_TEST=${CPPFLAGS_OPT.dev} ${CPP_STDFLAGS}
 
 CC=gcc
-CC_STDFLAGS=--DEXPORT -std=gnu17
+CSTDFLAGS=-DEXPORT -std=gnu17
 
-CC_FLAGS_OPT.debug=-O0 -g -ggdb -fno-omit-frame-pointer
-CC_FLAGS_OPT.dev=-O0 -g -ggdb -fno-omit-frame-pointer
-CC_FLAGS_OPT.release=-O3 -march=x86-64-v3
-CC_FLAGS=${CC_FLAGS_OPT.${BUILD}} ${CC_STDFLAGS}
-CC_FLAGS_TEST=${CC_FLAGS_OPT.dev} ${CC_STDFLAGS}
+CFLAGS_OPT.debug=-O0 -g -ggdb -fno-omit-frame-pointer
+CFLAGS_OPT.dev=-O0 -g -ggdb -fno-omit-frame-pointer
+CFLAGS_OPT.release=-O3 -march=x86-64-v3
+CFLAGS=${CFLAGS_OPT.${BUILD}} ${CSTDFLAGS}
+CFLAGS_TEST=${CFLAGS_OPT.dev} ${CSTDFLAGS}
 
 
 CFG_HEADERS=$(PARSER_GEN_DIR)bytestring.h $(PARSER_GEN_DIR)bsqon_ast_common.h $(PARSER_GEN_DIR)bsqon_ast.h

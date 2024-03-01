@@ -21,7 +21,7 @@ BSQON_AST_NODE_DEFINE_1(LiteralStringValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DEFINE_1(NameValue, const char*, data)
 BSQON_AST_NODE_DEFINE_2(StringOfValue, struct ByteString*, data, struct BSQON_AST_Node*, type)
-BSQON_AST_NODE_DEFINE_3(StringSliceValue, struct ByteString*, data, struct BSQON_AST_Node*, start, struct BSQON_AST_Node*, end)
+BSQON_AST_NODE_DEFINE_3(StringSliceValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, start, struct BSQON_AST_Node*, end)
 BSQON_AST_NODE_DEFINE_2(PathValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DEFINE_2(TypedLiteralValue, struct BSQON_AST_Node*, data, struct BSQON_AST_Node*, type)
 BSQON_AST_NODE_DEFINE_2(MapEntryValue, struct BSQON_AST_Node*, key, struct BSQON_AST_Node*, value)
@@ -95,7 +95,6 @@ const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node)
         case BSQON_AST_TAG_StringOfValue: return "StringOfValue";
         case BSQON_AST_TAG_ASCIIStringOfValue: return "ASCIIStringOfValue";
         case BSQON_AST_TAG_StringSliceValue: return "StringSliceValue";
-        case BSQON_AST_TAG_ASCIIStringSliceValue: return "ASCIIStringSliceValue";
         case BSQON_AST_TAG_PathValue: return "PathValue";
         case BSQON_AST_TAG_TypedLiteralValue: return "TypedLiteralValue";
         case BSQON_AST_TAG_MapEntryValue: return "MapEntryValue";
@@ -252,10 +251,18 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         BSQON_AST_print(nn->type);
         break;
     }
-    case BSQON_AST_TAG_StringSliceValue:
-    case BSQON_AST_TAG_ASCIIStringSliceValue: {
+    case BSQON_AST_TAG_StringSliceValue: {
         const struct BSQON_AST_NODE(StringSliceValue)* nn = BSQON_AST_NODE_AS(StringSliceValue, node);
-        printf("%s[%s, %s]", nn->data->bytes, nn->start != NULL ? nn->start : "", nn->end != NULL ? nn->end : "");
+        BSQON_AST_print(nn->data);
+        printf("[");
+        if(nn->start != NULL) {
+            BSQON_AST_print(nn->start);
+        }
+        printf(",");
+        if(nn->end != NULL) {
+            BSQON_AST_print(nn->end);
+        }
+        printf("]");
         break;
     }
     case BSQON_AST_TAG_PathValue: {

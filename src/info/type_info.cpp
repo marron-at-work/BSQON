@@ -1,7 +1,7 @@
 
 #include "type_info.h"
 
-namespace BSQON 
+namespace bsqon 
 {
     static AssemblyInfo g_assembly;
 

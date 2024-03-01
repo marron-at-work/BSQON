@@ -1,15 +1,13 @@
 #pragma once
 
 #include "../common.h"
-#include "../regex/bsqregex.h"
-#include "../regex/bsqpath.h"
 
 #include "../info/type_info.h"
 #include "../info/bsqon.h"
 
-#include "lb/bsqon_ast.h"
+#include "../fbparser/bsqon_ast.h"
 
-namespace BSQON
+namespace bsqon
 {
     class ParseError
     {

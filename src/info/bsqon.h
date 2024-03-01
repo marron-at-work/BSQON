@@ -6,7 +6,7 @@
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
-namespace BSQON
+namespace bsqon
 {
     class SourcePos
     {

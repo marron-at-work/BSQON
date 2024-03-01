@@ -3,7 +3,7 @@
 
 #include "../common.h"
 
-namespace BSQON
+namespace bsqon
 {
     //
     //TODO: this is not very performant (easy to debug though) we should do a numeric ID map or intern to string pointers later
@@ -54,7 +54,7 @@ namespace BSQON
         static const int64_t MIN_SAFE_INT = -9223372036854775807ll;
         static const int64_t MAX_SAFE_INT = 9223372036854775807ll;
 
-        static const int64_t MAX_SAFE_UNSIGNED = 9223372036854775807ll;
+        static const int64_t MAX_SAFE_NAT = 9223372036854775807ll;
 
         virtual const std::vector<TypeKey>* getPossibleSubtypeKeys() const
         {
