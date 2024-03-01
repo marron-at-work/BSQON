@@ -380,8 +380,7 @@ namespace bsqon
         //TODO: We may want to refine the representation range a bit
         boost::multiprecision::cpp_dec_float_50 cnv;
         
-    
-        DecimalNumberValue(const Type* vtype, SourcePos spos, std::string cnv) : PrimtitiveValue(ValueKind::DecimalNumberValueKind, vtype, spos), cnv(cnv) { ; }
+        DecimalNumberValue(const Type* vtype, SourcePos spos, boost::multiprecision::cpp_dec_float_50 cnv) : PrimtitiveValue(ValueKind::DecimalNumberValueKind, vtype, spos), cnv(cnv) { ; }
         virtual ~DecimalNumberValue() = default;
 
         virtual std::u8string toString() const override
@@ -422,7 +421,7 @@ namespace bsqon
         //TODO: We may want to refine the representation range a bit
         boost::multiprecision::cpp_dec_float_50 cnv;
     
-        DecimalDegreeNumberValue(const Type* vtype, SourcePos spos, std::string cnv) : PrimtitiveValue(ValueKind::DecimalDegreeNumberValueKind, vtype, spos), cnv(cnv) { ; }
+        DecimalDegreeNumberValue(const Type* vtype, SourcePos spos, boost::multiprecision::cpp_dec_float_50 cnv) : PrimtitiveValue(ValueKind::DecimalDegreeNumberValueKind, vtype, spos), cnv(cnv) { ; }
         virtual ~DecimalDegreeNumberValue() = default;
 
         virtual std::u8string toString() const override
@@ -443,7 +442,7 @@ namespace bsqon
         boost::multiprecision::cpp_dec_float_50 latitude;
         boost::multiprecision::cpp_dec_float_50 longitude;
     
-        LatLongValue(const Type* vtype, SourcePos spos, std::string latitude, std::string longitude) : PrimtitiveValue(ValueKind::LatLongValueKind, vtype, spos), latitude(latitude), longitude(longitude) { ; }
+        LatLongValue(const Type* vtype, SourcePos spos, boost::multiprecision::cpp_dec_float_50 latitude, boost::multiprecision::cpp_dec_float_50 longitude) : PrimtitiveValue(ValueKind::LatLongValueKind, vtype, spos), latitude(latitude), longitude(longitude) { ; }
         virtual ~LatLongValue() = default;
 
         virtual std::u8string toString() const override

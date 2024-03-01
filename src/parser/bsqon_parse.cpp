@@ -683,7 +683,7 @@ namespace bsqon
         }
 
         int64_t vv;
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'n'
 
         if(!Parser::isValidNat(nv, vv)) {
@@ -702,7 +702,7 @@ namespace bsqon
         }
 
         int64_t vv;
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'i'
 
         if(!Parser::isValidInt(nv, vv)) {
@@ -720,7 +720,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'N'
 
         if(nv.front() == '+') {
@@ -739,7 +739,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'I'
 
         if(nv.front() == '+') {
@@ -758,7 +758,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'R'
 
         if(nv.front() == '+') {
@@ -792,7 +792,7 @@ namespace bsqon
         }
 
         double vv;
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'f'
 
         if(!Parser::isValidFloat(nv, vv)) {
@@ -810,12 +810,82 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'd'
 
         boost::multiprecision::cpp_dec_float_50 pv(nv);
+        return new DecimalNumberValue(t, Parser::convertSrcPos(node->pos), pv);
+    }
 
-        return new DecimalNumberValue(t, Parser::convertSrcPos(node->pos), nv);
+    Value* Parser::parseDecimalDegree(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DecimalDegreeValue) {
+            this->addError("Expected Decimal Degree literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        nv.pop_back(); //remove the trailing 'dd'
+        nv.pop_back();
+        
+        boost::multiprecision::cpp_dec_float_50 pv(nv);
+        return new DecimalDegreeNumberValue(t, Parser::convertSrcPos(node->pos), pv);
+    }
+    
+    Value* Parser::parseLatLong(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_LatLongValue) {
+            this->addError("Expected LatLong literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+
+        auto split = nv.find("lat") + 3;
+
+        auto latstr = nv.substr(0, split);
+        if(latstr.front() == '+') {
+            latstr = latstr.substr(1);
+        }
+
+        auto longstr = nv.substr(split);
+        if(longstr.front() == '+') {
+            longstr = longstr.substr(1);
+        }
+
+        boost::multiprecision::cpp_dec_float_50 latv(latstr.substr(0, latstr.size() - 3));
+        boost::multiprecision::cpp_dec_float_50 longv(longstr.substr(0, longstr.size() - 4));
+
+        return new LatLongValue(t, Parser::convertSrcPos(node->pos), latv, longv);
+    }
+    
+    Value* Parser::parseComplex(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_ComplexValue) {
+            this->addError("Expected Complex number literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        nv.pop_back(); //remove the trailing 'i'
+
+        auto split = std::min(nv.find('+'), nv.find("-"));
+
+        auto realstr = nv.substr(0, split);
+        double realval;
+        if(!Parser::isValidFloat(realstr, realval)) {
+            this->addError("Invalid Complex literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto imagstr = nv.substr(split);
+        double imagval;
+        if(!Parser::isValidFloat(imagstr, imagval)) {
+            this->addError("Invalid Complex literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return new ComplexNumberValue(t, Parser::convertSrcPos(node->pos), realval, imagval);
     }
 
     Value* Parser::parseString(const PrimitiveType* t, const BSQON_AST_Node* node)
@@ -825,7 +895,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto bstr = BSQON_AST_asLiteralStringNode(node)->data;
+        auto bstr = BSQON_AST_NODE_AS(LiteralStringValue, node)->data;
         StringValue* svopt = StringValue::createFromParse(t, Parser::convertSrcPos(node->pos), bstr->bytes, bstr->len);
 
         if(svopt == nullptr) {
@@ -843,7 +913,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto bstr = BSQON_AST_asLiteralStringNode(node)->data;
+        auto bstr = BSQON_AST_NODE_AS(LiteralStringValue, node)->data;
         ASCIIStringValue* svopt = ASCIIStringValue::createFromParse(t, Parser::convertSrcPos(node->pos), bstr->bytes, bstr->len);
 
         if(svopt == nullptr) {
@@ -861,7 +931,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto buf = BSQON_AST_asLiteralStandardNode(node)->data;
+        auto buf = BSQON_AST_NODE_AS(LiteralStandardValue, node)->data;
         ByteBufferValue* bvopt = ByteBufferValue::createFromParse(t, Parser::convertSrcPos(node->pos), buf);
 
         if(bvopt == nullptr) {
@@ -879,7 +949,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto uuid = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto uuid = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         if(!uuid.starts_with("uuid4")) {
             this->addError("Invalid UUIDv4 value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));

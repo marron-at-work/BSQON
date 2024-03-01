@@ -173,6 +173,9 @@ namespace bsqon
         Value* parseRational(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseFloat(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseDecimal(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDecimalDegree(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseLatLong(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseComplex(const PrimitiveType* t, const BSQON_AST_Node* node);
 
         Value* parseString(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseASCIIString(const PrimitiveType* t, const BSQON_AST_Node* node);
