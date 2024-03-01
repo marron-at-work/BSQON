@@ -246,7 +246,9 @@ namespace BSQON
         });
 
         std::for_each(j["pthvalidators"].begin(), j["pthvalidators"].end(), [&assembly](const json &pv) {
-            assembly.bsqonPathValidators[pv[0].get<TypeKey>()] = BSQPath::jparse(pv[1].get<std::string>());
+            //
+            //TODO: need to implement path parser
+            //
         });
 
         std::for_each(j["recursiveSets"].begin(), j["recursiveSets"].end(), [&assembly](const json &rs) { 

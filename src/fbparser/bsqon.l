@@ -210,7 +210,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 
 [+-]{DATE}T{TIME}("."[0-9]{3}) { yylval.str = AST_STRDUP(yytext); return TOKEN_FULL_DELTA; }
 [+-]{NON_ZERO_INTEGRAL}"."[0-9]{1,4}"ds" { yylval.str = AST_STRDUP(yytext); return TOKEN_SECONDS_DELTA; }
-[+-]{NON_ZERO_INTEGRAL}"di"              { yylval.str = AST_STRDUP(yytext); return TOKEN_INCREMENTAL_DELTA; }
+[+-]{NON_ZERO_INTEGRAL}"di"              { yylval.str = AST_STRDUP(yytext); return TOKEN_INCREMENT_DELTA; }
 
  /* names */
 {IDENTIFIER} { 

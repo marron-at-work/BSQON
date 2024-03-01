@@ -4,7 +4,7 @@ namespace BSQON
 {
     StringValue* StringValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto sv = std::move(unescapeString(bytes, length));
+        auto sv = brex::unescapeUnicodeString(bytes, length);
         if(!sv.has_value()) {
             return nullptr;
         }
@@ -14,7 +14,7 @@ namespace BSQON
 
     ASCIIStringValue* ASCIIStringValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto sv = std::move(unescapeASCIIString(bytes, length));
+        auto sv = brex::unescapeASCIIString(bytes, length, false);
         if(!sv.has_value()) {
             return nullptr;
         }
@@ -55,56 +55,85 @@ namespace BSQON
         return new ByteBufferValue(vtype, spos, std::move(buff));
     }
 
-    StringOfValue* StringOfValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const BSQRegex* validator)
+    UnicodeRegexValue* UnicodeRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto str = unescapeString(bytes, length);
-        if(!str.has_value()) {
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, true, false, false);
+        if(!re.first.has_value()) {
             return nullptr;
         }
 
-        return validator->test(&str.value()) ? new StringOfValue(vtype, spos, std::move(str.value())) : nullptr;
+        auto normalizedre = re.first.value()->toBSQONFormat();
+        return new UnicodeRegexValue(vtype, spos, re.first.value(), normalizedre);
     }
 
-    ASCIIStringOfValue* ASCIIStringOfValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const BSQRegex* validator)
+    ASCIIRegexValue* ASCIIRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto str = std::move(unescapeASCIIString(bytes, length));
-        if(!str.has_value()) {
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, false);
+        if(!re.first.has_value()) {
             return nullptr;
         }
 
-        return validator->test(&str.value()) ? new ASCIIStringOfValue(vtype, spos, std::move(str.value())) : nullptr;
+        auto normalizedre = re.first.value()->toBSQONFormat();
+        return new ASCIIRegexValue(vtype, spos, re.first.value(), normalizedre);
     }
 
-    PathValue* PathValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const BSQPath* validator)
+    PathRegexValue* PathRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto str = std::move(unescapeASCIIString(chars, length));
-        if(!str.has_value()) {
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, true);
+        if(!re.first.has_value()) {
             return nullptr;
         }
 
-        return validator->test(str.value()) ? new PathValue(vtype, spos, std::move(str.value())) : nullptr;
+        auto normalizedre = re.first.value()->toBSQONFormat();
+        return new PathRegexValue(vtype, spos, re.first.value(), normalizedre);
     }
 
-    PathFragmentValue* PathFragmentValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const BSQPath* validator)
+    StringOfValue* StringOfValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator, brex::UnicodeRegexExecutor* executor)
     {
-        //skip the leading 'f'
-        auto str = std::move(unescapeASCIIString(chars + 1, length - 1));
-        if(!str.has_value()) {
+        auto sv = brex::unescapeUnicodeString(bytes, length);
+        if(!sv.has_value()) {
             return nullptr;
         }
 
-        return validator->test(str.value()) ? new PathFragmentValue(vtype, spos, std::move(str.value())) : nullptr;
+        brex::ExecutorError error;
+        bool accepts = executor->test(&sv.value(), error);
+        return (accepts && error == brex::ExecutorError::Ok) ? new StringOfValue(vtype, spos, std::move(sv.value())) : nullptr;
     }
 
-    PathGlobValue* PathGlobValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const BSQPath* validator)
+    ASCIIStringOfValue* ASCIIStringOfValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator, brex::ASCIIRegexExecutor* executor)
     {
-        //skip the leading 'g'
-        auto str = std::move(unescapeASCIIString(chars + 1, length - 1));
-        if(!str.has_value()) {
+        auto sv = brex::unescapeASCIIString(bytes, length, false);
+        if(!sv.has_value()) {
             return nullptr;
         }
 
-        return validator->test(str.value()) ? new PathGlobValue(vtype, spos, std::move(str.value())) : nullptr;
+        brex::ExecutorError error;
+        bool accepts = executor->test(&sv.value(), error);
+        return (accepts && error == brex::ExecutorError::Ok) ? new ASCIIStringOfValue(vtype, spos, std::move(sv.value())) : nullptr;
+    }
+
+    PathValue* PathValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const bpath::PathGlob* validator)
+    {
+        //
+        //TODO: path parser and validator implementation needed
+        //
+        return nullptr;
+    }
+
+    PathFragmentValue* PathFragmentValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const bpath::PathGlob* validator)
+    {
+        //
+        //TODO: path parser and validator implementation needed
+        //
+        return nullptr;
+    }
+
+    PathGlobValue* PathGlobValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* chars, size_t length, const bpath::PathGlob* validator)
+    {
+        //
+        //TODO: path parser and validator implementation needed
+        //
+        return nullptr;
     }
 
     std::vector<TypeKey> s_known_key_order = {

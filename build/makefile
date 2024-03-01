@@ -10,7 +10,7 @@ PARSER_DIR=$(SRC_DIR)parser/
 OUT_EXE=$(BUILD_DIR)output/
 OUT_OBJ=$(BUILD_DIR)output/obj/
 
-JSON_INCLUDES=-I $(BUILD_DIR)include/headers/json/
+JSON_INCLUDES=-I $(BUILD_DIR)include/json/
 LIB_PATH=$(OUT_EXE)
 
 #dev is default, for another flavor : make BUILD=release or debug

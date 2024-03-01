@@ -1040,8 +1040,9 @@ namespace BSQON
         const brex::Regex* tv;
         const std::u8string normalizedre;
     
-        UnicodeRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::UnicodeRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
         virtual ~UnicodeRegexValue() = default;
+
+        static UnicodeRegexValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length);
 
         virtual std::u8string toString() const override
         {
@@ -1052,6 +1053,10 @@ namespace BSQON
         {
             return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
         }
+
+    private:
+        UnicodeRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::UnicodeRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
+
     };
 
     class ASCIIRegexValue : public PrimtitiveValue 
@@ -1060,8 +1065,9 @@ namespace BSQON
         const brex::Regex* tv;
         const std::u8string normalizedre;
     
-        ASCIIRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::ASCIIRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
         virtual ~ASCIIRegexValue() = default;
+
+        static ASCIIRegexValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length);
 
         virtual std::u8string toString() const override
         {
@@ -1072,6 +1078,9 @@ namespace BSQON
         {
             return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
         }
+
+    private:
+        ASCIIRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::ASCIIRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
     };
 
     class PathRegexValue : public PrimtitiveValue 
@@ -1080,8 +1089,9 @@ namespace BSQON
         const brex::Regex* tv;
         const std::u8string normalizedre;
     
-        PathRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::PathRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
         virtual ~PathRegexValue() = default;
+
+        static PathRegexValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length);
 
         virtual std::u8string toString() const override
         {
@@ -1092,6 +1102,9 @@ namespace BSQON
         {
             return Value::keyCompareImplStringish(v1->normalizedre, v2->normalizedre);
         }
+
+    private:
+        PathRegexValue(const Type* vtype, SourcePos spos, brex::Regex* tv, std::u8string normalizedre) : PrimtitiveValue(ValueKind::PathRegexValueKind, vtype, spos), tv(tv), normalizedre(normalizedre) { ; }
     };
 
     class StringOfValue : public Value
@@ -1102,7 +1115,7 @@ namespace BSQON
         virtual ~StringOfValue() = default;
 
         //null if validator fails
-        static StringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator);
+        static StringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator, brex::UnicodeRegexExecutor* executor);
 
         virtual std::u8string toString() const override
         {
@@ -1139,7 +1152,7 @@ namespace BSQON
         virtual ~ASCIIStringOfValue() = default;
 
         //null if validator fails
-        static ASCIIStringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator);
+        static ASCIIStringOfValue* createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length, const brex::Regex* validator, brex::ASCIIRegexExecutor* executor);
 
         virtual std::u8string toString() const override
         {

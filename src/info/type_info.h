@@ -51,10 +51,10 @@ namespace BSQON
         Type(TypeTag tag, TypeKey tkey) : tag(tag), tkey(tkey) { ; }
         virtual ~Type() = default;
 
-        static const int64_t MIN_SAFE_INT = -9223372036854775807;
-        static const int64_t MAX_SAFE_INT = 9223372036854775807;
+        static const int64_t MIN_SAFE_INT = -9223372036854775807ll;
+        static const int64_t MAX_SAFE_INT = 9223372036854775807ll;
 
-        static const int64_t MAX_SAFE_UNSIGNED = 18446744073709551615;
+        static const int64_t MAX_SAFE_UNSIGNED = 9223372036854775807ll;
 
         virtual const std::vector<TypeKey>* getPossibleSubtypeKeys() const
         {

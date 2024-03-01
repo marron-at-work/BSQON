@@ -13,6 +13,7 @@ typedef nlohmann::json json;
 
 #include "../build/include/brex/regex/brex.h"
 #include "../build/include/brex/regex/brex_parser.h"
+#include "../build/include/brex/regex/brex_executor.h"
 
 #include "../build/include/brex/path/path.h"
 #include "../build/include/brex/path/path_fragment.h"
