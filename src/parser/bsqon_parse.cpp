@@ -924,6 +924,38 @@ namespace bsqon
         return svopt;
     }
 
+    Value* Parser::parseStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_StringSliceValue) {
+            this->addError("Expected StringSlice literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto sl = BSQON_AST_NODE_AS(StringSliceValue, node);
+        auto sval = this->parseValue(this->assembly->resolveType("String"), sl->data);
+        auto startval = this->parseValue(this->assembly->resolveType("Int"), sl->start);
+        auto endval = this->parseValue(this->assembly->resolveType("Int"), sl->end);
+
+        if(sval->vtype->tkey != "String" || startval->vtype->tkey != "Int" || endval->vtype->tkey != "Int") {
+            this->addError("Invalid type in StringSlice literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto sstr = &static_cast<StringValue*>(sval)->sv;
+        auto start = static_cast<IntNumberValue*>(startval)->cnv;
+        auto end = static_cast<IntNumberValue*>(endval)->cnv;
+
+        //convert to 0 based front indexing -- check bounds
+        xxxx;
+
+        return new StringSliceValue(t, Parser::convertSrcPos(node->pos), sstr, start, end);
+    }
+
+    Value* Parser::parseASCIIStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        xxxx;
+    }
+
     Value* Parser::parseByteBuffer(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
         if(node->tag != BSQON_AST_TAG_ByteBufferValue) {

@@ -179,6 +179,8 @@ namespace bsqon
 
         Value* parseString(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseASCIIString(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseASCIIStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseByteBuffer(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseUUIDv4(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseUUIDv7(const PrimitiveType* t, const BSQON_AST_Node* node);
