@@ -42,6 +42,10 @@ namespace bsqon
 
         bool processTZInfo(const std::string& ds, const char** tz);
         
+        bool processDeltaDateInfo(const std::string& ds, uint16_t& yy, uint16_t& mm, uint32_t& dd);
+        bool processDeltaTimeInfo(bool leadingvalue, const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss);
+        bool processDeltaMillisInfo(bool leadingvalue, const std::string& ds, uint32_t& millis);
+
         std::optional<std::vector<Value*>> processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node);
         std::optional<std::vector<std::pair<std::string, Value*>>> processPropertiesForRecord(const RecordType* ttype, BSQON_AST_NODE(BraceValue)* node);
         std::optional<std::vector<Value*>> processPropertiesForEntity(const StdEntityType* ttype, BSQON_AST_NODE(BraceValue)* node);
@@ -193,6 +197,13 @@ namespace bsqon
         Value* parseTickTime(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseLogicalTime(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseISOTimeStamp(const PrimitiveType* t, const BSQON_AST_Node* node);
+
+        Value* parseDeltaDateTime(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaPlainDate(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaPlainTime(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaFull(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaSeconds(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaIncrement(const PrimitiveType* t, const BSQON_AST_Node* node);
 
         Value* parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
 

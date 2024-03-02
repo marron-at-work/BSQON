@@ -112,6 +112,61 @@ namespace bsqon
         return true;
     }
 
+    bool Parser::processDeltaDateInfo(const std::string& ds, uint16_t& yy, uint16_t& mm, uint32_t& dd)
+    {
+        auto pp = sscanf(ds.c_str(), "%4" SCNu16 "-%2" SCNu16 "-%2" SCNu32, &yy, &mm, &dd);
+
+        if(pp != 3) {
+            return false;
+        } 
+        
+        if(yy != 0 && (mm < -11 || 11 < mm)) {
+            return false;
+        }
+        if((yy != 0 || mm != 0) && (dd < -30 || 30 < dd)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    bool Parser::processDeltaTimeInfo(bool leadingvalue, const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss)
+    {
+        auto pp = sscanf(ds.c_str(), "%2" SCNu32 ":%2" SCNu32 ":%2" SCNu32, &hh, &mm, &ss);
+
+        if(pp != 3) {
+            return false;
+        } 
+        
+        if(!leadingvalue && (hh < -23 || 23 < hh)) {
+            return false;
+        }
+        if((!leadingvalue || hh != 0) && (mm < -59 || 59 < mm)) {
+            return false;
+        }
+        if((!leadingvalue || hh != 0 || mm != 0) && (ss < -59 || 59 < ss)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    bool Parser::processDeltaMillisInfo(bool leadingvalue, const std::string& ds, uint32_t& millis)
+    {
+        auto pp = sscanf(ds.c_str(), ".%3" SCNu32, &millis);
+
+        if(pp != 1) {
+            return false;
+        } 
+        
+        if(!leadingvalue && (millis < -999 || 999 < millis)) {
+            return false;
+        }
+
+        return true;
+    }
+
+
     std::optional<std::vector<Value*>> Parser::processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node)
     {
         std::vector<Value*> elems;
@@ -257,7 +312,7 @@ namespace bsqon
         }
     }
 
-    void Parser::processEntriesForSequence(const Type* etype, BSQON_AST_Node* node, std::vector<Value*>& vals)
+    void Parser::processEntriesForSequence(const Type* etype, const BSQON_AST_Node* node, std::vector<Value*>& vals)
     {
         if(node->tag == BSQON_AST_TAG_BracketValue) {
             auto bnode = BSQON_AST_NODE_AS(BracketValue, node);
@@ -927,7 +982,7 @@ namespace bsqon
     Value* Parser::parseStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
         if(node->tag != BSQON_AST_TAG_StringSliceValue) {
-            this->addError("Expected StringSlice literal", Parser::convertSrcPos(node->pos));
+            this->addError("Expected StringView literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
@@ -937,7 +992,7 @@ namespace bsqon
         auto endval = this->parseValue(this->assembly->resolveType("Int"), sl->end);
 
         if(sval->vtype->tkey != "String" || startval->vtype->tkey != "Int" || endval->vtype->tkey != "Int") {
-            this->addError("Invalid type in StringSlice literal", Parser::convertSrcPos(node->pos));
+            this->addError("Invalid type in StringView literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
@@ -946,14 +1001,58 @@ namespace bsqon
         auto end = static_cast<IntNumberValue*>(endval)->cnv;
 
         //convert to 0 based front indexing -- check bounds
-        xxxx;
+        if(start < 0) {
+            start = sstr->size() + start;
+        }
+        if(end < 0)
+        {
+            end = sstr->size() + end;
+        }
+        
+        if(start < 0 || start > end || end > sstr->size()) {
+            this->addError("Invalid bounds in StringView literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
 
         return new StringSliceValue(t, Parser::convertSrcPos(node->pos), sstr, start, end);
     }
 
     Value* Parser::parseASCIIStringSlice(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
-        xxxx;
+        if(node->tag != BSQON_AST_TAG_StringSliceValue) {
+            this->addError("Expected StringView literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto sl = BSQON_AST_NODE_AS(StringSliceValue, node);
+        auto sval = this->parseValue(this->assembly->resolveType("String"), sl->data);
+        auto startval = this->parseValue(this->assembly->resolveType("Int"), sl->start);
+        auto endval = this->parseValue(this->assembly->resolveType("Int"), sl->end);
+
+        if(sval->vtype->tkey != "ASCIIString" || startval->vtype->tkey != "Int" || endval->vtype->tkey != "Int") {
+            this->addError("Invalid type in ASCIIStringView literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto sstr = &static_cast<ASCIIStringValue*>(sval)->sv;
+        auto start = static_cast<IntNumberValue*>(startval)->cnv;
+        auto end = static_cast<IntNumberValue*>(endval)->cnv;
+
+        //convert to 0 based front indexing -- check bounds
+        if(start < 0) {
+            start = sstr->size() + start;
+        }
+        if(end < 0)
+        {
+            end = sstr->size() + end;
+        }
+        
+        if(start < 0 || start > end || end > sstr->size()) {
+            this->addError("Invalid bounds in StringView literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return new ASCIIStringSliceValue(t, Parser::convertSrcPos(node->pos), sstr, start, end);
     }
 
     Value* Parser::parseByteBuffer(const PrimitiveType* t, const BSQON_AST_Node* node)
@@ -997,7 +1096,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto uuid = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto uuid = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         if(!uuid.starts_with("uuid7")) {
             this->addError("Invalid UUIDv7 value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -1013,7 +1112,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto hash = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto hash = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         return new SHAContentHashValue(t, Parser::convertSrcPos(node->pos), hash.substr(4, hash.size() - 5));
     }
 
@@ -1024,7 +1123,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto dstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         auto tstr = dstr.substr(dstr.find('T') + 1);
         auto tzstr = dstr.substr(dstr.find('@'));
 
@@ -1049,7 +1148,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto dstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         auto tstr = dstr.substr(dstr.find('T') + 1);
         auto tzstr = dstr.substr(dstr.find('@'));
 
@@ -1073,7 +1172,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto dstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
 
         uint16_t year;
         uint8_t month, day;
@@ -1094,7 +1193,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto tstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto tstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
 
         uint8_t hour, minute, second;
 
@@ -1114,10 +1213,8 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto tstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
-
         uint64_t vv;
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 't'
 
         if(!Parser::isValidWCTime(nv, vv)) {
@@ -1136,7 +1233,7 @@ namespace bsqon
         }
 
         uint64_t vv;
-        std::string nv = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         nv.pop_back(); //remove the trailing 'l'
 
         if(!Parser::isValidWCTime(nv, vv)) {
@@ -1154,7 +1251,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto dstr = std::string(BSQON_AST_asLiteralStandardNode(node)->data);
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
         auto tstr = dstr.substr(dstr.find('T') + 1);
         
         uint16_t year;
@@ -1169,6 +1266,111 @@ namespace bsqon
 
         ISOTimeStamp dv = {year, month, day, hour, minute, second, millis};
         return new ISOTimeStampValue(t, Parser::convertSrcPos(node->pos), dv);
+    }
+
+    Value* Parser::parseDeltaDateTime(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DeltaDateTimeValue) {
+            this->addError("Expected DeltaDateTime literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        auto sign = dstr.front();
+        dstr = dstr.substr(1);
+
+        auto tstr = dstr.substr(dstr.find('T') + 1);
+
+        uint16_t year, month;
+        uint32_t day, hour, minute, second;
+
+        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo((year == 0 && month == 0 && day == 0), tstr, hour, minute, second)) {
+            this->addError("Invalid component in DeltaDateTime value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        DeltaDateTime dv = {year, month, day, hour, minute, second, sign};
+        return new DeltaDateTimeValue(t, Parser::convertSrcPos(node->pos), dv);
+    }
+
+    Value* Parser::parseDeltaPlainDate(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DeltaPlainDateValue) {
+            this->addError("Expected DeltaPlainDate literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        auto sign = dstr.front();
+        dstr = dstr.substr(1);
+
+        uint16_t year, month;
+        uint32_t day;
+
+        if(!Parser::processDeltaDateInfo(dstr, year, month, day)) {
+            this->addError("Invalid component in DeltaPlainDate value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        DeltaPlainDate dv = {year, month, day, sign};
+        return new DeltaPlainDateValue(t, Parser::convertSrcPos(node->pos), dv);
+    }
+
+    Value* Parser::parseDeltaPlainTime(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DeltaPlainTimeValue) {
+            this->addError("Expected DeltaPlainTime literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto tstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        auto sign = tstr.front();
+        tstr = tstr.substr(1);
+
+        uint32_t hour, minute, second;
+
+        if(!Parser::processDeltaTimeInfo(true, tstr, hour, minute, second)) {
+            this->addError("Invalid component in DeltaPlainTime value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        DeltaPlainTime dv = {hour, minute, second, sign};
+        return new DeltaPlainTimeValue(t, Parser::convertSrcPos(node->pos), dv);
+    }
+
+    Value* Parser::parseDeltaFull(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DeltaFullValue) {
+            this->addError("Expected DeltaFull literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        auto sign = dstr.front();
+        dstr = dstr.substr(1);
+
+        auto tstr = dstr.substr(dstr.find('T') + 1);
+        
+        uint16_t year, month;
+        uint32_t day, hour, minute, second;
+        uint32_t millis;
+        
+        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo((year == 0 && month == 0 && day == 0), tstr, hour, minute, second) || !Parser::processDeltaMillisInfo((year == 0 && month == 0 && day == 0 && hour == 0 && minute == 0 && second == 0), tstr, millis)) {
+            this->addError("Invalid component in DeltaFull value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        DeltaFull dv = {year, month, day, hour, minute, second, millis, sign};
+        return new DeltaFullValue(t, Parser::convertSrcPos(node->pos), dv);
+    }
+
+    Value* Parser::parseDeltaSeconds(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        xxxx;
+    }
+    Value* Parser::parseDeltaIncrement(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        xxxx;
     }
 
     Value* Parser::parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
@@ -1357,13 +1559,13 @@ std::cout << "XX" << std::endl;
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        if(node->tag == BSQON_AST_TAG_SomethingCons) {
-            Value* ofval = this->parseValue(this->assembly->resolveType(t->oftype), BSQON_AST_asSpecialConsNode(node)->value);
+        if(node->tag == BSQON_AST_TAG_SomethingConsValue) {
+            Value* ofval = this->parseValue(this->assembly->resolveType(t->oftype), BSQON_AST_NODE_AS(SpecialConsValue, node)->value);
             return new SomethingValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
         else {
             auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_TYPE_AST_TAG_Nominal) {
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
                 this->addError("Expected Something value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1403,7 +1605,7 @@ std::cout << "XX" << std::endl;
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        if(node->tag == BSQON_AST_TAG_OkCons) {
+        if(node->tag == BSQON_AST_TAG_OkConsValue) {
             Value* ofval = this->parseValue(this->assembly->resolveType(t->ttype), BSQON_AST_asSpecialConsNode(node)->value);
             return new OkValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
@@ -1449,7 +1651,7 @@ std::cout << "XX" << std::endl;
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        if(node->tag == BSQON_AST_TAG_ErrCons) {
+        if(node->tag == BSQON_AST_TAG_ErrConsValue) {
             Value* ofval = this->parseValue(this->assembly->resolveType(t->etype), BSQON_AST_asSpecialConsNode(node)->value);
             return new ErrValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
@@ -1490,7 +1692,7 @@ std::cout << "XX" << std::endl;
 
     Value* Parser::parseMapEntry(const MapEntryType* t, const BSQON_AST_Node* node)
     {
-        if(node->tag != BSQON_AST_TAG_TypedValue && node->tag != BSQON_AST_TAG_MapEntry) {
+        if(node->tag != BSQON_AST_TAG_TypedValue && node->tag != BSQON_AST_TAG_MapEntryValue) {
             this->addError("Expected MapEntry value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1504,7 +1706,7 @@ std::cout << "XX" << std::endl;
         }
         else {
             auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_TYPE_AST_TAG_Nominal) {
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
                 this->addError("Expected MapEntry value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1610,7 +1812,7 @@ std::cout << "XX" << std::endl;
         }
 
         auto snode = BSQON_AST_asScopedNameNode(node);
-        const Type* ttype = this->parseTypeRoot((BSQON_TYPE_AST_Node*)snode->root);
+        const Type* ttype = this->parseTypeRoot(snode->root);
         if(ttype->tkey != t->tkey) {
             this->addError("Expected " + t->tkey + " value but got " + ttype->tkey, Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
