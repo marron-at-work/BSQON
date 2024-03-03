@@ -52,9 +52,10 @@ namespace bsqon
         DeltaDateTimeValueKind,
         DeltaPlainDateValueKind,
         DeltaPlainTimeValueKind,
-        DeltaFullValueKind,
+        DeltaISOTimeStampValueKind,
         DeltaSecondsValueKind,
-        DeltaIncrementValueKind,
+        DeltaTickValueKind,
+        DeltaLogicalValueKind,
         UnicodeRegexValueKind,
         ASCIIRegexValueKind,
         PathRegexValueKind,
@@ -965,13 +966,13 @@ namespace bsqon
         }
     };
 
-    class DeltaFullValue : public PrimtitiveValue 
+    class DeltaISOTimeStampValue : public PrimtitiveValue 
     {
     public:
-        const DeltaFull tv;
+        const DeltaISOTimeStamp tv;
     
-        DeltaFullValue(const Type* vtype, SourcePos spos, DeltaFull tv) : PrimtitiveValue(ValueKind::DeltaFullValueKind, vtype, spos), tv(tv) { ; }
-        virtual ~DeltaFullValue() = default;
+        DeltaISOTimeStampValue(const Type* vtype, SourcePos spos, DeltaISOTimeStamp tv) : PrimtitiveValue(ValueKind::DeltaISOTimeStampValueKind, vtype, spos), tv(tv) { ; }
+        virtual ~DeltaISOTimeStampValue() = default;
 
         virtual std::u8string toString() const override
         {
@@ -1010,13 +1011,13 @@ namespace bsqon
         }
     };
 
-    class DeltaIncrementValue : public PrimtitiveValue 
+    class DeltaTickValue : public PrimtitiveValue 
     {
     public:
         const int64_t tv;
     
-        DeltaIncrementValue(const Type* vtype, SourcePos spos, int64_t tv) : PrimtitiveValue(ValueKind::DeltaIncrementValueKind, vtype, spos), tv(tv) { ; }
-        virtual ~DeltaIncrementValue() = default;
+        DeltaTickValue(const Type* vtype, SourcePos spos, int64_t tv) : PrimtitiveValue(ValueKind::DeltaTickValueKind, vtype, spos), tv(tv) { ; }
+        virtual ~DeltaTickValue() = default;
 
         virtual std::u8string toString() const override
         {
@@ -1024,7 +1025,30 @@ namespace bsqon
             if(this->tv >= 0) {
                 sstr = "+" + sstr;
             }
-            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"di";
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"dt";
+        }
+
+        virtual bool isValidForTypedecl() const override
+        {
+            return true;
+        }
+    };
+
+    class DeltaLogicalValue : public PrimtitiveValue 
+    {
+    public:
+        const int64_t tv;
+    
+        DeltaLogicalValue(const Type* vtype, SourcePos spos, int64_t tv) : PrimtitiveValue(ValueKind::DeltaLogicalValueKind, vtype, spos), tv(tv) { ; }
+        virtual ~DeltaLogicalValue() = default;
+
+        virtual std::u8string toString() const override
+        {
+            auto sstr = std::to_string(this->tv);
+            if(this->tv >= 0) {
+                sstr = "+" + sstr;
+            }
+            return std::u8string(sstr.cbegin(), sstr.cend()) + u8"dl";
         }
 
         virtual bool isValidForTypedecl() const override

@@ -111,9 +111,10 @@ int errorcount = 0;
 %token <str> TOKEN_TICK_TIME "tick time"
 %token <str> TOKEN_TIMESTAMP "ISO timestamp"
 
-%token <str> TOKEN_FULL_DELTA "delta"
-%token <str> TOKEN_SECONDS_DELTA "delta in seconds"
-%token <str> TOKEN_INCREMENT_DELTA "dimentionless increment"
+%token <str> TOKEN_DELTA_ISOTIMESTAMP "timestamp delta"
+%token <str> TOKEN_DELTA_SECONDS "delta in seconds"
+%token <str> TOKEN_DELTA_TICK "tick delta"
+%token <str> TOKEN_DELTA_LOGICAL "logical time delta"
 
 %token <str> TOKEN_IDENTIFIER "identifier"
 %token <str> TOKEN_TYPE_COMPONENT "type name"
@@ -204,41 +205,42 @@ bsqontspec:
 ;
 
 bsqonliteral: 
-   KW_NONE                   { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_NoneValue, MK_SPOS_S(@1)); }
-   | KW_NOTHING              { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_NothingValue, MK_SPOS_S(@1)); }
-   | KW_TRUE                 { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_TrueValue, MK_SPOS_S(@1)); }
-   | KW_FALSE                { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_FalseValue, MK_SPOS_S(@1)); }
-   | TOKEN_NAT               { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_NatValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_INT               { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_IntValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_BIG_NAT           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_BigNatValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_BIG_INT           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_BigIntValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_RATIONAL          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_RationalValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_FLOAT             { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_FloatValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DECIMAL           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DecimalValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DECIMAL_DEGREE    { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DecimalDegreeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_COMPLEX           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_ComplexValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_LAT_LONG          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_LatLongValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_BYTE_BUFFER       { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_ByteBufferValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_UUID_V4           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UUIDv4Value, MK_SPOS_S(@1), $1); }
-   | TOKEN_UUID_V7           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UUIDv7Value, MK_SPOS_S(@1), $1); }
-   | TOKEN_SHA_HASH          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_SHAHashcodeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_STRING            { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_StringValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_ASCII_STRING      { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_ASCIIStringValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_PATH_ITEM         { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_NakedPathValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_REGEX             { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_RegexValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DATE_TIME         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DateTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_UTC_DATE_TIME     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UTCDateTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_PLAIN_DATE        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_PlainDateValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_PLAIN_TIME        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_PlainTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_LOGICAL_TIME      { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_LogicalTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_TICK_TIME         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_TickTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_TIMESTAMP         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_TimestampValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DELTA_DATE_TIME   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaDateTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DELTA_PLAIN_DATE  { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainDateValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_DELTA_PLAIN_TIME  { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainTimeValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_FULL_DELTA        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaFullValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_SECONDS_DELTA     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaSecondsValue, MK_SPOS_S(@1), $1); }
-   | TOKEN_INCREMENT_DELTA   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaIncrementValue, MK_SPOS_S(@1), $1); }
+   KW_NONE                    { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_NoneValue, MK_SPOS_S(@1)); }
+   | KW_NOTHING               { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_NothingValue, MK_SPOS_S(@1)); }
+   | KW_TRUE                  { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_TrueValue, MK_SPOS_S(@1)); }
+   | KW_FALSE                 { $$ = BSQON_AST_NODE_CONS(SingletonValue, BSQON_AST_TAG_FalseValue, MK_SPOS_S(@1)); }
+   | TOKEN_NAT                { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_NatValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_INT                { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_IntValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_BIG_NAT            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_BigNatValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_BIG_INT            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_BigIntValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_RATIONAL           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_RationalValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_FLOAT              { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_FloatValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DECIMAL            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DecimalValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DECIMAL_DEGREE     { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DecimalDegreeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_COMPLEX            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_ComplexValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_LAT_LONG           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_LatLongValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_BYTE_BUFFER        { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_ByteBufferValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_UUID_V4            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UUIDv4Value, MK_SPOS_S(@1), $1); }
+   | TOKEN_UUID_V7            { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UUIDv7Value, MK_SPOS_S(@1), $1); }
+   | TOKEN_SHA_HASH           { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_SHAHashcodeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_STRING             { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_StringValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_ASCII_STRING       { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_ASCIIStringValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_PATH_ITEM          { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_NakedPathValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_REGEX              { $$ = BSQON_AST_NODE_CONS(LiteralStringValue, BSQON_AST_TAG_RegexValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DATE_TIME          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DateTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_UTC_DATE_TIME      { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_UTCDateTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_PLAIN_DATE         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_PlainDateValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_PLAIN_TIME         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_PlainTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_LOGICAL_TIME       { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_LogicalTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_TICK_TIME          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_TickTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_TIMESTAMP          { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_TimestampValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_DATE_TIME    { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaDateTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_PLAIN_DATE   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainDateValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_PLAIN_TIME   { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaPlainTimeValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_ISOTIMESTAMP { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaISOTimeStampValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_SECONDS      { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaSecondsValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_TICK         { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaTickValue, MK_SPOS_S(@1), $1); }
+   | TOKEN_DELTA_LOGICAL      { $$ = BSQON_AST_NODE_CONS(LiteralStandardValue, BSQON_AST_TAG_DeltaLogicalValue, MK_SPOS_S(@1), $1); }
 ;
 
 bsqonunspecvar: 

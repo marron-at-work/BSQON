@@ -208,9 +208,10 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 [+-]{DATE}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_DATE; }
 [+-]{TIME}        { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_PLAIN_TIME; }
 
-[+-]{DATE}T{TIME}("."[0-9]{3}) { yylval.str = AST_STRDUP(yytext); return TOKEN_FULL_DELTA; }
-[+-]{NON_ZERO_INTEGRAL}"."[0-9]{1,4}"ds" { yylval.str = AST_STRDUP(yytext); return TOKEN_SECONDS_DELTA; }
-[+-]{NON_ZERO_INTEGRAL}"di"              { yylval.str = AST_STRDUP(yytext); return TOKEN_INCREMENT_DELTA; }
+[+-]{DATE}T{TIME}("."[0-9]{3})           { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_ISOTIMESTAMP; }
+[+-]{NON_ZERO_INTEGRAL}"."[0-9]{1,4}"ds" { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_SECONDS; }
+[+-]{NON_ZERO_INTEGRAL}"dt"              { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_TICK; }
+[+-]{NON_ZERO_INTEGRAL}"dl"              { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_LOGICAL; }
 
  /* names */
 {IDENTIFIER} { 

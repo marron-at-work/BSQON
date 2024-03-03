@@ -10,7 +10,7 @@ namespace bsqon
         "String", "ASCIIString", "StringView", "ASCIIStringView" "ByteBuffer", 
         "DateTime", "UTCDateTime", "PlainDate", "PlainTime", "TickTime", "LogicalTime", "ISOTimeStamp", 
         "UUIDv4", "UUIDv7", "SHAContentHash", 
-        "DataTimeDelta", "PlainDateDelta", "PlainTimeDelta", "TimestampDelta", "IncrementDelta", "SecondsDelta",
+        "DataTimeDelta", "PlainDateDelta", "PlainTimeDelta", "ISOTimestampDelta", "SecondsDelta", "TickTimeDelta", "LogicalTimeDelta",
         "UnicodeRegex", "ASCIIRegex", "PathRegex" 
     };
 
@@ -75,6 +75,12 @@ namespace bsqon
         return ecount == 1;
     }
 
+    bool Parser::isValidWCDelta(const std::string nv, int64_t& vv)
+    {
+        auto ecount = sscanf(nv.c_str(), "%" SCNi64, &vv);
+        return ecount == 1;
+    }
+
     bool Parser::processDateInfo(const std::string& ds, uint16_t& yy, uint8_t& mm, uint8_t& dd)
     {
         auto pp = sscanf(ds.c_str(), "%4" SCNu16 "-%2" SCNu8 "-%2" SCNu8, &yy, &mm, &dd);
@@ -115,57 +121,20 @@ namespace bsqon
     bool Parser::processDeltaDateInfo(const std::string& ds, uint16_t& yy, uint16_t& mm, uint32_t& dd)
     {
         auto pp = sscanf(ds.c_str(), "%4" SCNu16 "-%2" SCNu16 "-%2" SCNu32, &yy, &mm, &dd);
-
-        if(pp != 3) {
-            return false;
-        } 
-        
-        if(yy != 0 && (mm < -11 || 11 < mm)) {
-            return false;
-        }
-        if((yy != 0 || mm != 0) && (dd < -30 || 30 < dd)) {
-            return false;
-        }
-        
-        return true;
+        return pp == 3;
     }
 
-    bool Parser::processDeltaTimeInfo(bool leadingvalue, const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss)
+    bool Parser::processDeltaTimeInfo(const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss)
     {
         auto pp = sscanf(ds.c_str(), "%2" SCNu32 ":%2" SCNu32 ":%2" SCNu32, &hh, &mm, &ss);
-
-        if(pp != 3) {
-            return false;
-        } 
-        
-        if(!leadingvalue && (hh < -23 || 23 < hh)) {
-            return false;
-        }
-        if((!leadingvalue || hh != 0) && (mm < -59 || 59 < mm)) {
-            return false;
-        }
-        if((!leadingvalue || hh != 0 || mm != 0) && (ss < -59 || 59 < ss)) {
-            return false;
-        }
-        
-        return true;
+        return pp == 3;
     }
 
-    bool Parser::processDeltaMillisInfo(bool leadingvalue, const std::string& ds, uint32_t& millis)
+    bool Parser::processDeltaMillisInfo(const std::string& ds, uint32_t& millis)
     {
         auto pp = sscanf(ds.c_str(), ".%3" SCNu32, &millis);
-
-        if(pp != 1) {
-            return false;
-        } 
-        
-        if(!leadingvalue && (millis < -999 || 999 < millis)) {
-            return false;
-        }
-
-        return true;
+        return pp == 1;
     }
-
 
     std::optional<std::vector<Value*>> Parser::processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node)
     {
@@ -1284,7 +1253,7 @@ namespace bsqon
         uint16_t year, month;
         uint32_t day, hour, minute, second;
 
-        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo((year == 0 && month == 0 && day == 0), tstr, hour, minute, second)) {
+        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo(tstr, hour, minute, second)) {
             this->addError("Invalid component in DeltaDateTime value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1329,7 +1298,7 @@ namespace bsqon
 
         uint32_t hour, minute, second;
 
-        if(!Parser::processDeltaTimeInfo(true, tstr, hour, minute, second)) {
+        if(!Parser::processDeltaTimeInfo(tstr, hour, minute, second)) {
             this->addError("Invalid component in DeltaPlainTime value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1338,10 +1307,10 @@ namespace bsqon
         return new DeltaPlainTimeValue(t, Parser::convertSrcPos(node->pos), dv);
     }
 
-    Value* Parser::parseDeltaFull(const PrimitiveType* t, const BSQON_AST_Node* node)
+    Value* Parser::parseDeltaISOTimeStamp(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
-        if(node->tag != BSQON_AST_TAG_DeltaFullValue) {
-            this->addError("Expected DeltaFull literal", Parser::convertSrcPos(node->pos));
+        if(node->tag != BSQON_AST_TAG_DeltaISOTimeStampValue) {
+            this->addError("Expected DeltaISOTimestamp literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
@@ -1355,22 +1324,73 @@ namespace bsqon
         uint32_t day, hour, minute, second;
         uint32_t millis;
         
-        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo((year == 0 && month == 0 && day == 0), tstr, hour, minute, second) || !Parser::processDeltaMillisInfo((year == 0 && month == 0 && day == 0 && hour == 0 && minute == 0 && second == 0), tstr, millis)) {
-            this->addError("Invalid component in DeltaFull value", Parser::convertSrcPos(node->pos));
+        if(!Parser::processDeltaDateInfo(dstr, year, month, day) || !Parser::processDeltaTimeInfo(tstr, hour, minute, second) || !Parser::processDeltaMillisInfo(tstr, millis)) {
+            this->addError("Invalid component in DeltaISOTimestamp value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        DeltaFull dv = {year, month, day, hour, minute, second, millis, sign};
-        return new DeltaFullValue(t, Parser::convertSrcPos(node->pos), dv);
+        DeltaISOTimeStamp dv = {year, month, day, hour, minute, second, millis, sign};
+        return new DeltaISOTimeStampValue(t, Parser::convertSrcPos(node->pos), dv);
     }
 
     Value* Parser::parseDeltaSeconds(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
-        xxxx;
+        if(node->tag != BSQON_AST_TAG_DeltaSecondsValue) {
+            this->addError("Expected DeltaSeconds literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        double vv;
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        nv.pop_back(); //remove the trailing 's'
+        nv.pop_back(); //remove the trailing 'd'
+
+        if(!Parser::isValidFloat(nv, vv)) {
+            this->addError("DeltaSeconds value outside of valid range", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return new DeltaSecondsValue(t, Parser::convertSrcPos(node->pos), vv);
     }
-    Value* Parser::parseDeltaIncrement(const PrimitiveType* t, const BSQON_AST_Node* node)
+
+    Value* Parser::parseDeltaTick(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
-        xxxx;
+        if(node->tag != BSQON_AST_TAG_DeltaTickValue) {
+            this->addError("Expected DeltaTick literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        int64_t vv;
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        nv.pop_back(); //remove the trailing 't'
+        nv.pop_back(); //remove the trailing 'd'
+
+        if(!Parser::isValidWCDelta(nv, vv)) {
+            this->addError("DeltaTick value outside of valid range", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return new DeltaTickValue(t, Parser::convertSrcPos(node->pos), vv);
+    }
+
+    Value* Parser::parseDeltaLogical(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_DeltaLogicalValue) {
+            this->addError("Expected DeltaLogical literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        int64_t vv;
+        std::string nv = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
+        nv.pop_back(); //remove the trailing 'l'
+        nv.pop_back(); //remove the trailing 'd'
+
+        if(!Parser::isValidWCDelta(nv, vv)) {
+            this->addError("DeltaLogical value outside of valid range", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return new DeltaLogicalValue(t, Parser::convertSrcPos(node->pos), vv);
     }
 
     Value* Parser::parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node)

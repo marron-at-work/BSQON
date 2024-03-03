@@ -101,7 +101,7 @@ namespace bsqon
         char8_t sign;    // '+' or '-'
     };
 
-    struct DeltaFull
+    struct DeltaISOTimeStamp
     {
         //Leading value is always in range -- e.g. if year is set then month must be 0-11, etc.
         int16_t year;   

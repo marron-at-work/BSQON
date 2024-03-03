@@ -35,6 +35,7 @@ namespace bsqon
         static bool isValidInt(const std::string nv, int64_t& vv);
         static bool isValidFloat(const std::string nv, double& vv);
         static bool isValidWCTime(const std::string nv, uint64_t& vv);
+        static bool isValidWCDelta(const std::string nv, int64_t& vv);
 
         static bool processDateInfo(const std::string& ds, uint16_t& yy, uint8_t& mm, uint8_t& dd);
         static bool processTimeInfo(const std::string& ds, uint8_t& hh, uint8_t& mm, uint8_t& ss);
@@ -43,8 +44,8 @@ namespace bsqon
         bool processTZInfo(const std::string& ds, const char** tz);
         
         bool processDeltaDateInfo(const std::string& ds, uint16_t& yy, uint16_t& mm, uint32_t& dd);
-        bool processDeltaTimeInfo(bool leadingvalue, const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss);
-        bool processDeltaMillisInfo(bool leadingvalue, const std::string& ds, uint32_t& millis);
+        bool processDeltaTimeInfo(const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss);
+        bool processDeltaMillisInfo(const std::string& ds, uint32_t& millis);
 
         std::optional<std::vector<Value*>> processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node);
         std::optional<std::vector<std::pair<std::string, Value*>>> processPropertiesForRecord(const RecordType* ttype, BSQON_AST_NODE(BraceValue)* node);
@@ -201,9 +202,10 @@ namespace bsqon
         Value* parseDeltaDateTime(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseDeltaPlainDate(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseDeltaPlainTime(const PrimitiveType* t, const BSQON_AST_Node* node);
-        Value* parseDeltaFull(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaISOTimeStamp(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseDeltaSeconds(const PrimitiveType* t, const BSQON_AST_Node* node);
-        Value* parseDeltaIncrement(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaTick(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseDeltaLogical(const PrimitiveType* t, const BSQON_AST_Node* node);
 
         Value* parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
 

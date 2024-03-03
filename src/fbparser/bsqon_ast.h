@@ -53,9 +53,10 @@ enum BSQON_AST_TAG
     BSQON_AST_TAG_DeltaDateTimeValue,
     BSQON_AST_TAG_DeltaPlainDateValue,
     BSQON_AST_TAG_DeltaPlainTimeValue,
-    BSQON_AST_TAG_DeltaFullValue,
+    BSQON_AST_TAG_DeltaISOTimeStampValue,
     BSQON_AST_TAG_DeltaSecondsValue,
-    BSQON_AST_TAG_DeltaIncrementValue,
+    BSQON_AST_TAG_DeltaTickValue,
+    BSQON_AST_TAG_DeltaLogicalValue,
 
     BSQON_AST_TAG_IdentifierValue,
     BSQON_AST_TAG_UnspecIdentifierValue,
