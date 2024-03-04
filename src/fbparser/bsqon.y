@@ -332,10 +332,10 @@ bsqonbracketbracevalue:
 ;
 
 bsqontypedvalue:
-   '<' bsqontspec '>' bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @4), $4, $2); }
-   | bsqonnominaltype bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @2), $2, $1); }
-   | '<' error '>' bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @4), $4, BSQON_AST_ERROR(MK_SPOS_S(@2))); }
-   | error bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @2), $2, BSQON_AST_ERROR(MK_SPOS_S(@1))); }
+   '<' bsqontspec '>' bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @4), $4, $2, true); }
+   | bsqonnominaltype bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @2), $2, $1, false); }
+   | '<' error '>' bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @4), $4, BSQON_AST_ERROR(MK_SPOS_S(@2)), true); }
+   | error bsqonbracketbracevalue { $$ = BSQON_AST_NODE_CONS(TypedValue, BSQON_AST_TAG_TypedValue, MK_SPOS_R(@1, @2), $2, BSQON_AST_ERROR(MK_SPOS_S(@1)), false); }
 ; 
 
 bsqonstructvalue:

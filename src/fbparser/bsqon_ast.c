@@ -27,7 +27,7 @@ BSQON_AST_NODE_DEFINE_2(TypedLiteralValue, struct BSQON_AST_Node*, data, struct 
 BSQON_AST_NODE_DEFINE_2(MapEntryValue, struct BSQON_AST_Node*, key, struct BSQON_AST_Node*, value)
 BSQON_AST_NODE_DEFINE_1(BracketValue, struct BSQON_AST_LIST_OF_VALUES*, values)
 BSQON_AST_NODE_DEFINE_1(BraceValue, struct BSQON_AST_NLIST_OF_VALUES*, entries)
-BSQON_AST_NODE_DEFINE_2(TypedValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, type)
+BSQON_AST_NODE_DEFINE_3(TypedValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, type, bool, istagged)
 BSQON_AST_NODE_DEFINE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const char*, consname)
 
 BSQON_AST_NODE_DEFINE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)

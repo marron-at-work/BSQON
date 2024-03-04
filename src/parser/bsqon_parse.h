@@ -47,14 +47,14 @@ namespace bsqon
         bool processDeltaTimeInfo(const std::string& ds, uint32_t& hh, uint32_t& mm, uint32_t& ss);
         bool processDeltaMillisInfo(const std::string& ds, uint32_t& millis);
 
-        std::optional<std::vector<Value*>> processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node);
-        std::optional<std::vector<std::pair<std::string, Value*>>> processPropertiesForRecord(const RecordType* ttype, BSQON_AST_NODE(BraceValue)* node);
-        std::optional<std::vector<Value*>> processPropertiesForEntity(const StdEntityType* ttype, BSQON_AST_NODE(BraceValue)* node);
+        std::optional<std::vector<Value*>> processEntriesForTuple(const TupleType* ttype, const BSQON_AST_NODE(BracketValue)* node);
+        std::optional<std::vector<std::pair<std::string, Value*>>> processPropertiesForRecord(const RecordType* ttype, const BSQON_AST_NODE(BraceValue)* node);
+        std::optional<std::vector<Value*>> processPropertiesForEntity(const StdEntityType* ttype, const BSQON_AST_NODE(BraceValue)* node);
 
-        std::optional<Value*> processPropertiesForSpecialCons(const Type* etype, BSQON_AST_NODE(BraceValue)* node);
-        std::optional<std::pair<Value*, Value*>> processPropertiesForMapEntry(const Type* ktype, const Type* vtype, BSQON_AST_NODE(BraceValue)* node);
+        std::optional<Value*> processPropertiesForSpecialCons(const Type* etype, const BSQON_AST_NODE(BraceValue)* node);
+        std::optional<std::pair<Value*, Value*>> processPropertiesForMapEntry(const Type* ktype, const Type* vtype, const BSQON_AST_NODE(BraceValue)* node);
         void processEntriesForSequence(const Type* etype, const BSQON_AST_Node* node, std::vector<Value*>& vals);
-        void processEntriesForMap(const Type* keytype, const Type* valtype, BSQON_AST_NODE(BraceValue)* node, std::vector<MapEntryValue*>& entries);
+        void processEntriesForMap(const Type* keytype, const Type* valtype, const BSQON_AST_NODE(BraceValue)* node, std::vector<MapEntryValue*>& entries);
 
     public:
         const AssemblyInfo* assembly;
@@ -67,11 +67,17 @@ namespace bsqon
 
         std::map<std::string, Value*> vbinds;
 
+        std::map<std::string, const brex::RegexOpt*> namedRegexes;
+        std::map<TypeKey, brex::UnicodeRegexExecutor*> reunicodebinds;
+        std::map<TypeKey, brex::ASCIIRegexExecutor*> reasciibinds;
+
         Parser(const AssemblyInfo* assembly) {;}
         virtual ~Parser() = default;
 
         const Type* resolveTypeFromNameList(std::string basenominal, std::vector<const Type*> terms);
         const Type* resolveAndCheckType(TypeKey tkey, SourcePos spos);
+
+        static std::string resolveTypeForRegexLookup(const std::string& tkey, void* assembly);
 
         const Type* processCoreType(std::string tname);
 
@@ -214,11 +220,11 @@ namespace bsqon
         Value* parseStringOf(const StringOfType* t, const BSQON_AST_Node* node);
         Value* parseASCIIStringOf(const ASCIIStringOfType* t, const BSQON_AST_Node* node);
 
-        Value* parsePathNaked(const PathType* t, SourcePos spos, struct BSQON_AST_LiteralStringNode* node);
+        Value* parsePathNaked(const PathType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node);
         Value* parsePath(const PathType* t, const BSQON_AST_Node* node);
-        Value* parsePathFragmentNaked(const PathFragmentType* t, SourcePos spos, struct BSQON_AST_LiteralStringNode* node);
+        Value* parsePathFragmentNaked(const PathFragmentType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node);
         Value* parsePathFragment(const PathFragmentType* t, const BSQON_AST_Node* node);
-        Value* parsePathGlobNaked(const PathGlobType* t, SourcePos spos, struct BSQON_AST_LiteralStringNode* node);
+        Value* parsePathGlobNaked(const PathGlobType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node);
         Value* parsePathGlob(const PathGlobType* t, const BSQON_AST_Node* node);
 
         Value* parseSomething(const SomethingType* t, const BSQON_AST_Node* node);

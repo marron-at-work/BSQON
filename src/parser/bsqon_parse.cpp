@@ -136,7 +136,7 @@ namespace bsqon
         return pp == 1;
     }
 
-    std::optional<std::vector<Value*>> Parser::processEntriesForTuple(const TupleType* ttype, BSQON_AST_NODE(BracketValue)* node)
+    std::optional<std::vector<Value*>> Parser::processEntriesForTuple(const TupleType* ttype, const BSQON_AST_NODE(BracketValue)* node)
     {
         std::vector<Value*> elems;
 
@@ -154,7 +154,7 @@ namespace bsqon
         }
     }
 
-    std::optional<std::vector<std::pair<std::string, Value*>>> Parser::processPropertiesForRecord(const RecordType* ttype, BSQON_AST_NODE(BraceValue)* node)
+    std::optional<std::vector<std::pair<std::string, Value*>>> Parser::processPropertiesForRecord(const RecordType* ttype, const BSQON_AST_NODE(BraceValue)* node)
     {
         std::vector<std::pair<std::string, Value*>> props;
 
@@ -190,7 +190,7 @@ namespace bsqon
         }
     }
 
-    std::optional<std::vector<Value*>> Parser::processPropertiesForEntity(const StdEntityType* ttype, BSQON_AST_NODE(BraceValue)* node)
+    std::optional<std::vector<Value*>> Parser::processPropertiesForEntity(const StdEntityType* ttype, const BSQON_AST_NODE(BraceValue)* node)
     {
         std::vector<Value*> vals(ttype->fields.size(), nullptr);
 
@@ -243,7 +243,7 @@ namespace bsqon
         }
     }
 
-    std::optional<Value*> Parser::processPropertiesForSpecialCons(const Type* etype, BSQON_AST_NODE(BraceValue)* node)
+    std::optional<Value*> Parser::processPropertiesForSpecialCons(const Type* etype, const BSQON_AST_NODE(BraceValue)* node)
     {
         if(node->entries == NULL) {
             this->addError("Missing argument", Parser::convertSrcPos(node->base.pos));
@@ -262,7 +262,7 @@ namespace bsqon
         }
     }
 
-    std::optional<std::pair<Value*, Value*>> Parser::processPropertiesForMapEntry(const Type* ktype, const Type* vtype, BSQON_AST_NODE(BraceValue)* node)
+    std::optional<std::pair<Value*, Value*>> Parser::processPropertiesForMapEntry(const Type* ktype, const Type* vtype, const BSQON_AST_NODE(BraceValue)* node)
     {
         if(node->entries == NULL || node->entries->next == NULL) {
             this->addError("Missing argument", Parser::convertSrcPos(node->base.pos));
@@ -300,7 +300,7 @@ namespace bsqon
         }
     }
         
-    void Parser::processEntriesForMap(const Type* keytype, const Type* valtype, BSQON_AST_NODE(BraceValue)* node, std::vector<MapEntryValue*>& entries)
+    void Parser::processEntriesForMap(const Type* keytype, const Type* valtype, const BSQON_AST_NODE(BraceValue)* node, std::vector<MapEntryValue*>& entries)
     {
         const Type* metype = this->assembly->resolveType("MapEntry<" + keytype->tkey + ", " + valtype->tkey + ">");
 
@@ -361,6 +361,11 @@ namespace bsqon
         }
             
         return tt;
+    }
+
+    std::string Parser::resolveTypeForRegexLookup(const std::string& tkey, void* assembly)
+    {
+        return ((AssemblyInfo*)assembly)->resolveType(tkey)->tkey;
     }
 
     const Type* Parser::processCoreType(std::string tname) 
@@ -1469,22 +1474,33 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        const BSQRegex* vre = this->assembly->revalidators.at(t->oftype);
+        const brex::Regex* vre = this->assembly->bsqonRegexValidators.at(t->oftype);
+        if(!this->reunicodebinds.contains(t->oftype)) {
+            std::vector<brex::RegexCompileError> compileerror;
+            auto uexecutor = brex::RegexCompiler::compileUnicodeRegexToExecutor(vre, this->namedRegexes, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
+
+            if(compileerror.size() > 0) {
+                this->addError("Invalid Regex value: " + std::string(compileerror.front().msg.cbegin(), compileerror.front().msg.cend()), Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+            this->reunicodebinds[t->oftype] = uexecutor;
+        }
+        brex::UnicodeRegexExecutor* ure = this->reunicodebinds.at(t->oftype);
 
         struct ByteString* sstr;
         if(node->tag == BSQON_AST_TAG_StringValue) {
-            sstr = BSQON_AST_asLiteralStringNode(node)->data;
+            sstr = BSQON_AST_NODE_AS(LiteralStringValue, node)->data;
         }
         else {
-            sstr = BSQON_AST_asStringOfNode(node)->data;
+            sstr = BSQON_AST_NODE_AS(StringOfValue, node)->data;
 
-            const Type* oftype = this->parseTypeRoot(BSQON_AST_asStringOfNode(node)->type);
+            const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(StringOfValue, node)->type);
             if(oftype->tkey != t->oftype) {
                 this->addError("Mismatch between expected StringOf type " + t->oftype + " and given type " + oftype->tkey, Parser::convertSrcPos(node->pos));
             }
         }
 
-        StringOfValue* svopt = StringOfValue::createFromParse(t, Parser::convertSrcPos(node->pos), sstr->bytes, sstr->len, vre);
+        StringOfValue* svopt = StringOfValue::createFromParse(t, Parser::convertSrcPos(node->pos), sstr->bytes, sstr->len, vre, ure);
 
         if(svopt == nullptr) {
             this->addError("Invalid characters in string (does not validate)", Parser::convertSrcPos(node->pos));
@@ -1501,22 +1517,33 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        const BSQRegex* vre = this->assembly->revalidators.at(t->oftype);
+        const brex::Regex* vre = this->assembly->bsqonRegexValidators.at(t->oftype);
+        if(!this->reasciibinds.contains(t->oftype)) {
+            std::vector<brex::RegexCompileError> compileerror;
+            auto aexecutor = brex::RegexCompiler::compileASCIIRegexToExecutor(vre, this->namedRegexes, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
+
+            if(compileerror.size() > 0) {
+                this->addError("Invalid Regex value: " + std::string(compileerror.front().msg.cbegin(), compileerror.front().msg.cend()), Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+            this->reasciibinds[t->oftype] = aexecutor;
+        }
+        brex::ASCIIRegexExecutor* are = this->reasciibinds.at(t->oftype);
 
         struct ByteString* sstr;
-        if(node->tag == BSQON_AST_TAG_ASCIIString) {
-            sstr = BSQON_AST_asLiteralStringNode(node)->data;
+        if(node->tag == BSQON_AST_TAG_ASCIIStringValue) {
+            sstr = BSQON_AST_NODE_AS(LiteralStringValue, node)->data;
         }
         else {
-            sstr = BSQON_AST_asStringOfNode(node)->data;
+            sstr = BSQON_AST_NODE_AS(StringOfValue, node)->data;
 
-            const Type* oftype = this->parseTypeRoot(BSQON_AST_asStringOfNode(node)->type);
+            const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(StringOfValue, node)->type);
             if(oftype->tkey != t->oftype) {
                 this->addError("Mismatch between expected ASCIIStringOf type " + t->oftype + " and given type " + oftype->tkey, Parser::convertSrcPos(node->pos));
             }
         }
 
-        ASCIIStringOfValue* svopt = ASCIIStringOfValue::createFromParse(t, Parser::convertSrcPos(node->pos), sstr->bytes, sstr->len, vre);
+        ASCIIStringOfValue* svopt = ASCIIStringOfValue::createFromParse(t, Parser::convertSrcPos(node->pos), sstr->bytes, sstr->len, vre, are);
 
         if(svopt == nullptr) {
             this->addError("Invalid characters in string (does not validate)", Parser::convertSrcPos(node->pos));
@@ -1526,8 +1553,13 @@ namespace bsqon
         return svopt;
     }
 
-    Value* Parser::parsePathNaked(const PathType* t, SourcePos spos, BSQON_AST_LiteralStringNode* node)
+    Value* Parser::parsePathNaked(const PathType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node)
     {
+        if(*node->data->bytes != '\\') {
+            this->addError("Expected Path literal", spos);
+            return new ErrorValue(t, spos);
+        }
+
         const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
         PathValue* popt = PathValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
 
@@ -1541,21 +1573,33 @@ namespace bsqon
 
     Value* Parser::parsePath(const PathType* t, const BSQON_AST_Node* node)
     {
-        if(node->tag != BSQON_AST_TAG_PathValue || *BSQON_AST_asPathNode(node)->data->data->bytes != '`') {
+        if(node->tag != BSQON_AST_TAG_PathValue) {
             this->addError("Expected Path literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto ptype = this->parseTypeRoot(BSQON_AST_asPathNode(node)->type);
+        auto pnode = BSQON_AST_NODE_AS(PathValue, node);
+        if(pnode->data->tag != BSQON_AST_TAG_NakedPathValue) {
+            this->addError("Expected Path literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto ptype = this->parseTypeRoot(pnode->type);
         if(ptype->tkey != t->tkey) {
             this->addError("Mismatch between expected Path type " + t->oftype + " and given type " + ptype->tkey, Parser::convertSrcPos(node->pos));
         }
 
-        return this->parsePathNaked(t, Parser::convertSrcPos(node->pos), BSQON_AST_asPathNode(node)->data);
+        auto pstrnode = BSQON_AST_NODE_AS(LiteralStringValue, pnode->data);
+        return this->parsePathNaked(t, Parser::convertSrcPos(node->pos), pstrnode);
     }
 
-    Value* Parser::parsePathFragmentNaked(const PathFragmentType* t, SourcePos spos, BSQON_AST_LiteralStringNode* node)
+    Value* Parser::parsePathFragmentNaked(const PathFragmentType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node)
     {
+        if(*node->data->bytes != 'g') {
+            this->addError("Expected PathFragment literal", spos);
+            return new ErrorValue(t, spos);
+        }
+
         const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
         PathFragmentValue* popt = PathFragmentValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
 
@@ -1569,20 +1613,27 @@ namespace bsqon
 
     Value* Parser::parsePathFragment(const PathFragmentType* t, const BSQON_AST_Node* node)
     {
-        if(node->tag != BSQON_AST_TAG_PathValue || *BSQON_AST_asPathNode(node)->data->data->bytes == 'f') {
+        if(node->tag != BSQON_AST_TAG_PathValue) {
             this->addError("Expected PathFragment literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto ptype = this->parseTypeRoot(BSQON_AST_asPathNode(node)->type);
+        auto pnode = BSQON_AST_NODE_AS(PathValue, node);
+        if(pnode->data->tag != BSQON_AST_TAG_NakedPathValue) {
+            this->addError("Expected PathFragment literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto ptype = this->parseTypeRoot(pnode->type);
         if(ptype->tkey != t->tkey) {
             this->addError("Mismatch between expected PathFragment type " + t->oftype + " and given type " + ptype->tkey, Parser::convertSrcPos(node->pos));
         }
 
-        return this->parsePathFragmentNaked(t, Parser::convertSrcPos(node->pos), BSQON_AST_asPathNode(node)->data);
+        auto pstrnode = BSQON_AST_NODE_AS(LiteralStringValue, pnode->data);
+        return this->parsePathFragmentNaked(t, Parser::convertSrcPos(node->pos), pstrnode);
     }
 
-    Value* Parser::parsePathGlobNaked(const PathGlobType* t, SourcePos spos, BSQON_AST_LiteralStringNode* node)
+    Value* Parser::parsePathGlobNaked(const PathGlobType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node)
     {
         const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
         PathGlobValue* popt = PathGlobValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
@@ -1597,17 +1648,24 @@ namespace bsqon
 
     Value* Parser::parsePathGlob(const PathGlobType* t, const BSQON_AST_Node* node)
     {
-        if(node->tag != BSQON_AST_TAG_PathValue || *BSQON_AST_asPathNode(node)->data->data->bytes == 'g') {
+        if(node->tag != BSQON_AST_TAG_PathValue) {
             this->addError("Expected PathGlob literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto ptype = this->parseTypeRoot(BSQON_AST_asPathNode(node)->type);
+        auto pnode = BSQON_AST_NODE_AS(PathValue, node);
+        if(pnode->data->tag != BSQON_AST_TAG_NakedPathValue) {
+            this->addError("Expected PathGlob literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto ptype = this->parseTypeRoot(pnode->type);
         if(ptype->tkey != t->tkey) {
             this->addError("Mismatch between expected PathGlob type " + t->oftype + " and given type " + ptype->tkey, Parser::convertSrcPos(node->pos));
         }
 
-        return this->parsePathGlobNaked(t, Parser::convertSrcPos(node->pos), BSQON_AST_asPathNode(node)->data);
+        auto pstrnode = BSQON_AST_NODE_AS(LiteralStringValue, pnode->data);
+        return this->parsePathGlobNaked(t, Parser::convertSrcPos(node->pos), pstrnode);
     }
 
     Value* Parser::parseSomething(const SomethingType* t, const BSQON_AST_Node* node)
@@ -1622,13 +1680,13 @@ namespace bsqon
             return new SomethingValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected Something value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -1647,7 +1705,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->oftype), BSQON_AST_asBraceValueNode(tnode->value));
+            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->oftype), BSQON_AST_NODE_AS(BraceValue, tnode->value));
             if(!ofval.has_value()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1664,18 +1722,24 @@ namespace bsqon
         }
 
         if(node->tag == BSQON_AST_TAG_OkConsValue) {
-            Value* ofval = this->parseValue(this->assembly->resolveType(t->ttype), BSQON_AST_asSpecialConsNode(node)->value);
+            Value* ofval = this->parseValue(this->assembly->resolveType(t->ttype), BSQON_AST_NODE_AS(SpecialConsValue, node)->value);
             return new OkValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_TYPE_AST_TAG_NominalExt) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalScopedType || tnode->istagged) {
                 this->addError("Expected Ok value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalExtNode(tnode->type);
-            if(oftypenode->root->terms != NULL) {
+            auto oftypenode = BSQON_AST_NODE_AS(NominalScopedType, tnode->type);
+            if(oftypenode->root->tag != BSQON_AST_TAG_NominalType) {
+                this->addError("Expected Ok value", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            auto roottype = BSQON_AST_NODE_AS(NominalType, oftypenode->root);
+            if(roottype->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
                     this->addError("Expected Ok value but got type " + ttype->tkey, Parser::convertSrcPos(node->pos));
@@ -1683,8 +1747,8 @@ namespace bsqon
                 }
             }
 
-            if(strcmp(oftypenode->root->name, "Result") != 0 || strcmp(oftypenode->ext, "Ok") != 0) {
-                this->addError("Expected Result::Ok value but got type " + std::string(oftypenode->root->name) + "::" + std::string(oftypenode->ext), Parser::convertSrcPos(node->pos));
+            if(strcmp(roottype->name, "Result") != 0 || strcmp(oftypenode->ext, "Ok") != 0) {
+                this->addError("Expected Result::Ok value but got type " + std::string(roottype->name) + "::" + std::string(oftypenode->ext), Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
             
@@ -1693,7 +1757,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->ttype), BSQON_AST_asBraceValueNode(tnode->value));
+            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->ttype), BSQON_AST_NODE_AS(BraceValue, tnode->value));
             if(!ofval.has_value()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1710,18 +1774,24 @@ namespace bsqon
         }
 
         if(node->tag == BSQON_AST_TAG_ErrConsValue) {
-            Value* ofval = this->parseValue(this->assembly->resolveType(t->etype), BSQON_AST_asSpecialConsNode(node)->value);
+            Value* ofval = this->parseValue(this->assembly->resolveType(t->etype), BSQON_AST_NODE_AS(SpecialConsValue, node)->value);
             return new ErrValue(t, Parser::convertSrcPos(node->pos), ofval);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_TYPE_AST_TAG_NominalExt) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalScopedType || tnode->istagged) {
                 this->addError("Expected Err value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalExtNode(tnode->type);
-            if(oftypenode->root->terms != NULL) {
+            auto oftypenode = BSQON_AST_NODE_AS(NominalScopedType, tnode->type);
+            if(oftypenode->root->tag != BSQON_AST_TAG_NominalType) {
+                this->addError("Expected Err value", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            auto roottype = BSQON_AST_NODE_AS(NominalType, oftypenode->root);
+            if(roottype->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
                     this->addError("Expected Err value but got type " + ttype->tkey, Parser::convertSrcPos(node->pos));
@@ -1729,8 +1799,8 @@ namespace bsqon
                 }
             }
             
-            if(strcmp(oftypenode->root->name, "Result") != 0 || strcmp(oftypenode->ext, "Err") != 0) {
-                this->addError("Expected Result::Err value but got type " + std::string(oftypenode->root->name) + "::" + std::string(oftypenode->ext), Parser::convertSrcPos(node->pos));
+            if(strcmp(roottype->name, "Result") != 0 || strcmp(oftypenode->ext, "Err") != 0) {
+                this->addError("Expected Result::Err value but got type " + std::string(roottype->name) + "::" + std::string(oftypenode->ext), Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
@@ -1739,7 +1809,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->etype), BSQON_AST_asBraceValueNode(tnode->value));
+            std::optional<Value*> ofval = this->processPropertiesForSpecialCons(this->assembly->resolveType(t->etype), BSQON_AST_NODE_AS(BraceValue, tnode->value));
             if(!ofval.has_value()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1756,20 +1826,20 @@ namespace bsqon
         }
 
         if(node->tag != BSQON_AST_TAG_MapEntryValue) {
-            auto tnode = BSQON_AST_asMapEntryNode(node);
+            auto tnode = BSQON_AST_NODE_AS(MapEntryValue, node);
             auto kv = this->parseValue(this->assembly->resolveType(t->ktype), tnode->key);
             auto vv = this->parseValue(this->assembly->resolveType(t->vtype), tnode->value);
 
             return new MapEntryValue(t, Parser::convertSrcPos(node->pos), kv, vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected MapEntry value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -1788,7 +1858,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto vv = this->processPropertiesForMapEntry(this->assembly->resolveType(t->ktype), this->assembly->resolveType(t->vtype), BSQON_AST_asBraceValueNode(tnode->value));
+            auto vv = this->processPropertiesForMapEntry(this->assembly->resolveType(t->ktype), this->assembly->resolveType(t->vtype), BSQON_AST_NODE_AS(BraceValue, tnode->value));
             if(!vv.has_value()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1805,7 +1875,7 @@ namespace bsqon
         }
 
         if(node->tag == BSQON_AST_TAG_TypedValue) {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
             const Type* ttype = this->parseTypeRoot(tnode->type);
             if(ttype->tkey != t->tkey) {
                 this->addError("Expected " + t->tkey + " value but got " + ttype->tkey, Parser::convertSrcPos(node->pos));
@@ -1820,7 +1890,7 @@ namespace bsqon
             node = tnode->value;
         }
 
-        auto vvals = this->processEntriesForTuple(t, BSQON_AST_asBracketValueNode(node));
+        auto vvals = this->processEntriesForTuple(t, BSQON_AST_NODE_AS(BracketValue, node));
         if(!vvals.has_value()) {
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1836,7 +1906,7 @@ namespace bsqon
         }
 
         if(node->tag == BSQON_AST_TAG_TypedValue) {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
             const Type* ttype = this->parseTypeRoot(tnode->type);
             if(ttype->tkey != t->tkey) {
                 this->addError("Expected " + t->tkey + " value but got " + ttype->tkey, Parser::convertSrcPos(node->pos));
@@ -1851,7 +1921,7 @@ namespace bsqon
             node = tnode->value;
         }
 
-        auto vvals = this->processPropertiesForRecord(t, BSQON_AST_asBraceValueNode(node));
+        auto vvals = this->processPropertiesForRecord(t, BSQON_AST_NODE_AS(BraceValue, node));
         if(!vvals.has_value()) {
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1869,7 +1939,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto snode = BSQON_AST_asScopedNameNode(node);
+        auto snode = BSQON_AST_NODE_AS(ScopedNameValue, node);
         const Type* ttype = this->parseTypeRoot(snode->root);
         if(ttype->tkey != t->tkey) {
             this->addError("Expected " + t->tkey + " value but got " + ttype->tkey, Parser::convertSrcPos(node->pos));
@@ -1891,8 +1961,8 @@ namespace bsqon
     {
         auto vnode = node;
         if(node->tag == BSQON_AST_TAG_TypedLiteralValue) {
-            vnode = BSQON_AST_asTypedLiteralNode(node)->data;
-            const Type* tdtype = this->parseTypeRoot(BSQON_AST_asTypedLiteralNode(node)->type);
+            vnode = BSQON_AST_NODE_AS(TypedLiteralValue, node)->data;
+            const Type* tdtype = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedLiteralValue, node)->type);
 
             if(tdtype->tkey != t->tkey) {
                 this->addError("Expected " + t->tkey + " value but got " + tdtype->tkey, Parser::convertSrcPos(node->pos));
@@ -1908,8 +1978,8 @@ namespace bsqon
 
         Value* bval = nullptr;
         if(node->tag == BSQON_AST_TAG_NakedPathValue) {
-            auto npnode = BSQON_AST_asLiteralStringNode(vnode);
-            if(*npnode->data->bytes == '`') {
+            auto npnode = BSQON_AST_NODE_AS(LiteralStringValue, vnode);
+            if(*npnode->data->bytes == '\\') {
                 bval = this->parsePathNaked(static_cast<const PathType*>(btype), Parser::convertSrcPos(vnode->pos), npnode);
             }
             else if(*npnode->data->bytes == 'f') {
@@ -1944,14 +2014,14 @@ namespace bsqon
         }
 
         if(node->tag == BSQON_AST_TAG_TypedValue) {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
             const Type* ttype = this->parseTypeRoot(tnode->type);
             if(ttype->tkey != t->tkey) {
                 this->addError("Expected " + t->tkey + " value but got " + ttype->tkey, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            if(tnode->value->tag != BSQON_AST_TAG_BraceValue) {
+            if(tnode->value->tag != BSQON_AST_TAG_BraceValue || tnode->istagged) {
                 this->addError("Expected entity value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -1959,7 +2029,7 @@ namespace bsqon
             node = tnode->value;
         }
 
-        auto vvals = this->processPropertiesForEntity(t, BSQON_AST_asBraceValueNode(node));
+        auto vvals = this->processPropertiesForEntity(t, BSQON_AST_NODE_AS(BraceValue, node));
         if(!vvals.has_value()) {
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1979,13 +2049,13 @@ namespace bsqon
              this->processEntriesForSequence(t, node, vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected List value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -2022,13 +2092,13 @@ namespace bsqon
              this->processEntriesForSequence(t, node, vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected Stack value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -2065,13 +2135,13 @@ namespace bsqon
              this->processEntriesForSequence(t, node, vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected Queue value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -2108,13 +2178,13 @@ namespace bsqon
              this->processEntriesForSequence(t, node, vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected Set value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -2158,16 +2228,16 @@ namespace bsqon
 
         std::vector<MapEntryValue*> vv;
         if(node->tag == BSQON_AST_TAG_BraceValue) {
-             this->processEntriesForMap(tkey, tvalue, BSQON_AST_asBraceValueNode(node), vv);
+             this->processEntriesForMap(tkey, tvalue, BSQON_AST_NODE_AS(BraceValue, node), vv);
         }
         else {
-            auto tnode = BSQON_AST_asTypedValueNode(node);
-            if(tnode->type->tag != BSQON_AST_TAG_NominalType) {
+            auto tnode = BSQON_AST_NODE_AS(TypedValue, node);
+            if(tnode->type->tag != BSQON_AST_TAG_NominalType || tnode->istagged) {
                 this->addError("Expected Map value", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            auto oftypenode = BSQON_AST_asNominalNode(tnode->type);
+            auto oftypenode = BSQON_AST_NODE_AS(NominalType, tnode->type);
             if(oftypenode->terms != NULL) {
                 const Type* ttype = this->parseTypeRoot(tnode->type);
                 if(ttype->tkey != t->tkey) {
@@ -2186,7 +2256,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            this->processEntriesForMap(tkey, tvalue, BSQON_AST_asBraceValueNode(tnode->value), vv);
+            this->processEntriesForMap(tkey, tvalue, BSQON_AST_NODE_AS(BraceValue, tnode->value), vv);
         }
 
         std::sort(vv.begin(), vv.end(), [](const MapEntryValue* v1, const MapEntryValue* v2) { return Value::keyCompare(v1->key, v2->key) < 0; });
@@ -2232,11 +2302,26 @@ namespace bsqon
         else if(tk == "Decimal") {
             return this->parseDecimal(t, node);
         }
+        else if(tk == "DecimalDegree") {
+            return this->parseDecimalDegree(t, node);
+        }
+        else if(tk == "LatLongCoordinate") {
+            return this->parseLatLong(t, node);
+        }
+        else if(tk == "Complex") {
+            return this->parseComplex(t, node);
+        }
         else if(tk == "String") {
             return this->parseString(t, node);
         }
         else if(tk == "ASCIIString") {
             return this->parseASCIIString(t, node);
+        }
+        else if(tk == "StringView") {
+            return this->parseStringSlice(t, node);
+        }
+        else if(tk == "ASCIIStringView") {
+            return this->parseASCIIStringSlice(t, node);
         }
         else if(tk == "ByteBuffer") {
             return this->parseByteBuffer(t, node);
@@ -2270,9 +2355,36 @@ namespace bsqon
         }
         else if(tk == "SHAContentHash") {
             return this->parseSHAHashcode(t, node);
-        } 
-        else if(tk == "Regex") {
-            return this->parseRegex(t, node);
+        }
+        else if(tk == "DataTimeDelta") {
+            return this->parseDeltaDateTime(t, node);
+        }
+        else if(tk == "PlainDateDelta") {
+            return this->parseDeltaPlainDate(t, node);
+        }
+        else if(tk == "PlainTimeDelta") {
+            return this->parseDeltaPlainTime(t, node);
+        }
+        else if(tk == "ISOTimestampDelta") {
+            return this->parseDeltaISOTimeStamp(t, node);
+        }
+        else if(tk == "SecondsDelta") {
+            return this->parseDeltaSeconds(t, node);
+        }
+        else if(tk == "TickTimeDelta") {
+            return this->parseDeltaTick(t, node);
+        }
+        else if(tk == "LogicalTimeDelta") {
+            return this->parseDeltaLogical(t, node);
+        }
+        else if(tk == "UnicodeRegex") {
+            return this->parseUnicodeRegex(t, node);
+        }
+        else if(tk == "ASCIIRegex") {
+            return this->parseASCIIRegex(t, node);
+        }
+        else if(tk == "PathRegex") {
+            return this->parsePathRegex(t, node);
         }
         else {
             this->addError("Unknown primitive type " + tk, Parser::convertSrcPos(node->pos));
