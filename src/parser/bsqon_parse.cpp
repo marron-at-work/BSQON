@@ -1393,35 +1393,73 @@ namespace bsqon
         return new DeltaLogicalValue(t, Parser::convertSrcPos(node->pos), vv);
     }
 
-    Value* Parser::parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
+    Value* Parser::parseUnicodeRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
     {
         if(node->tag != BSQON_AST_TAG_RegexValue) {
             this->addError("Expected Regex literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto rparse = std::string((char*)BSQON_AST_asLiteralStringNode(node)->data->bytes, BSQON_AST_asLiteralStringNode(node)->data->len);
-        auto rr = RegexParser::parseRegex(std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>{}.from_bytes(rparse));
-        auto rstr = rr->toString();
-
-        std::cout << rstr << std::endl;
-
-std::cout << "XX" << std::endl;
-        std::cout << "Regex literals: " << (this->assembly == nullptr) << std::endl;
-        std::cout << "YY" << std::endl;
-        for(auto ii = this->assembly->regexliterals.begin(); ii != this->assembly->regexliterals.end(); ++ii) {
-            std::cout << (*ii).first << ": " << (*ii).second << std::endl;
-        }
-        std::cout << "ZZ" << std::endl;
-
-        auto rri = this->assembly->regexliterals.find(rstr);
-
-        if(rri == this->assembly->regexliterals.end()) {
-            this->addError("Invalid Regex value", Parser::convertSrcPos(node->pos));
+        auto strnode = BSQON_AST_NODE_AS(LiteralStringValue, node);
+        if(strnode->data->bytes[strnode->data->len - 1] != '/') {
+            this->addError("Expected Unicode Regex value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        return new RegexValue(t, Parser::convertSrcPos(node->pos), rri->second);
+        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, true, false, false);
+        if(!rparse.first.has_value()  || !rparse.second.empty()) {
+            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
+            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+        
+        return UnicodeRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+    }
+
+    Value* Parser::parseASCIIRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_RegexValue) {
+            this->addError("Expected Regex literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto strnode = BSQON_AST_NODE_AS(LiteralStringValue, node);
+        if(strnode->data->bytes[strnode->data->len - 1] != 'a') {
+            this->addError("Expected ASCIIRegex value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, false, true, false);
+        if(!rparse.first.has_value()  || !rparse.second.empty()) {
+            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
+            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+        
+        return ASCIIRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+    }
+
+    Value* Parser::parsePathRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_RegexValue) {
+            this->addError("Expected Regex literal", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto strnode = BSQON_AST_NODE_AS(LiteralStringValue, node);
+        if(strnode->data->bytes[strnode->data->len - 1] != 'p') {
+            this->addError("Expected PathRegex value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, false, true, false);
+        if(!rparse.first.has_value()  || !rparse.second.empty()) {
+            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
+            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+        
+        return PathRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
     }
 
     Value* Parser::parseStringOf(const StringOfType* t, const BSQON_AST_Node* node)

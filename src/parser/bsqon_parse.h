@@ -207,7 +207,9 @@ namespace bsqon
         Value* parseDeltaTick(const PrimitiveType* t, const BSQON_AST_Node* node);
         Value* parseDeltaLogical(const PrimitiveType* t, const BSQON_AST_Node* node);
 
-        Value* parseRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseUnicodeRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parseASCIIRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
+        Value* parsePathRegex(const PrimitiveType* t, const BSQON_AST_Node* node);
 
         Value* parseStringOf(const StringOfType* t, const BSQON_AST_Node* node);
         Value* parseASCIIStringOf(const ASCIIStringOfType* t, const BSQON_AST_Node* node);
