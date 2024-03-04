@@ -2467,8 +2467,23 @@ namespace bsqon
             if(node->tag == BSQON_AST_TAG_NothingValue) {
                 return this->parseNothing(static_cast<const PrimitiveType*>(this->assembly->resolveType("Nothing")), node);
             }
-            else {
-                return this->parseSomething(static_cast<const SomethingType*>(this->assembly->resolveType("Something<" + otype->oftype + ">")), node);
+            else if(node->tag == BSQON_AST_TAG_TypedValue) {
+                if(node->tag != BSQON_AST_TAG_TypedValue) {
+                    this->addError("Values of Result<T, E> type must be tagged", Parser::convertSrcPos(node->pos));
+                    return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+                }
+
+                const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedValue, node)->type);
+                if(oftype->isUnresolved()) {
+                    return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+                }
+
+                if(oftype->tkey == "Nothing") {
+                    return this->parseNothing(static_cast<const PrimitiveType*>(this->assembly->resolveType("Nothing")), node);
+                }
+                else {
+                    return this->parseSomething(static_cast<const SomethingType*>(this->assembly->resolveType("Something<" + otype->oftype + ">")), node);    
+                }
             }
         }
         else if(t->tag == TypeTag::TYPE_RESULT) {
@@ -2488,7 +2503,7 @@ namespace bsqon
                     return new ErrorValue(t, Parser::convertSrcPos(node->pos));
                 }
 
-                const Type* oftype = this->parseTypeRoot(BSQON_AST_asTypedValueNode(node)->type);
+                const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedValue, node)->type);
                 if(oftype->isUnresolved()) {
                     return new ErrorValue(t, Parser::convertSrcPos(node->pos));
                 }
@@ -2512,7 +2527,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            const Type* oftype = this->parseTypeRoot(BSQON_AST_asTypedValueNode(node)->type);
+            const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedValue, node)->type);
             if(oftype->isUnresolved()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
@@ -2566,15 +2581,15 @@ namespace bsqon
         Value* vv = nullptr;
         const Type* tt = nullptr;
         if(tk == BSQON_AST_TAG_TypedValue) {
-            tt = this->parseTypeRoot(BSQON_AST_asTypedValueNode(node)->type);
+            tt = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedValue, node)->type);
             if(std::find(s_okTypeTaggedTags.cbegin(), s_okTypeTaggedTags.cend(), tt->tag) == s_okTypeTaggedTags.cend()) {
                 this->addError("Invalid tagged value " + tt->tkey, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
-            vv = this->parseValueDirect(tt, BSQON_AST_asTypedValueNode(node)->value);
+            vv = this->parseValueDirect(tt, BSQON_AST_NODE_AS(TypedValue, node)->value);
         }
         else if(tk == BSQON_AST_TAG_StringOfValue) {
-            const Type* oftype = this->parseTypeRoot(BSQON_AST_asStringOfNode(node)->type);
+            const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(StringOfValue, node)->type);
             if(oftype->isUnresolved()) {
                 this->addError("Invalid StringOf value " + oftype->tkey, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -2588,7 +2603,7 @@ namespace bsqon
             vv = this->parseStringOf(static_cast<const StringOfType*>(tt), node);
         }
         else if(tk == BSQON_AST_TAG_ASCIIStringOfValue) {
-            const Type* oftype = this->parseTypeRoot(BSQON_AST_asStringOfNode(node)->type);
+            const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(StringOfValue, node)->type);
             if(oftype->isUnresolved()) {
                 this->addError("Invalid ASCIIStringOf value " + oftype->tkey, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -2601,8 +2616,20 @@ namespace bsqon
             }
             vv = this->parseASCIIStringOf(static_cast<const ASCIIStringOfType*>(tt), node);
         }
+        else if(tk == BSQON_AST_TAG_StringSliceValue) {
+            auto ssbase = this->parseValue()
+            if(ssnode->data->)
+            xxxx;
+            tt = this->assembly->resolveType("StringView");
+            vv = this->parseStringSlice(static_cast<const PrimitiveType*>(tt), node);
+        }
+        else if(tk == BSQON_AST_TAG_RegexValue) {
+            xxxx;
+                tt = this->assembly->resolveType("Regex");
+                vv = this->parseRegex(static_cast<const PrimitiveType*>(tt), node);
+        }
         else if(tk == BSQON_AST_TAG_PathValue) {
-            auto pnode = BSQON_AST_asPathNode(node);
+            auto pnode = BSQON_AST_NODE_AS(PathValue, node);
 
             const Type* oftype = this->parseTypeRoot(pnode->type);
             if(oftype->isUnresolved()) {
@@ -2637,12 +2664,12 @@ namespace bsqon
             }
         }
         else if(tk == BSQON_AST_TAG_TypedLiteralValue) {
-            tt = this->parseTypeRoot(BSQON_AST_asTypedLiteralNode(node)->type);
+            tt = this->parseTypeRoot(BSQON_AST_NODE_AS(TypedLiteralValue, node)->type);
             if(tt->isUnresolved()) {
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            vv = this->parseValueSimple(tt, BSQON_AST_asTypedLiteralNode(node)->data);
+            vv = this->parseValueSimple(tt, BSQON_AST_NODE_AS(TypedLiteralValue, node)->data);
         }
         else {
             if(tk == BSQON_AST_TAG_TrueValue || tk == BSQON_AST_TAG_FalseValue) {
@@ -2677,6 +2704,18 @@ namespace bsqon
                 tt = this->assembly->resolveType("Rational");
                 vv = this->parseRational(static_cast<const PrimitiveType*>(tt), node);
             }
+            else if(tk == BSQON_AST_TAG_DecimalDegreeValue) {
+                tt = this->assembly->resolveType("DecimalDegree");
+                vv = this->parseDecimalDegree(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_LatLongValue) {
+                tt = this->assembly->resolveType("LatLongCoordinate");
+                vv = this->parseLatLong(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_ComplexValue) {
+                tt = this->assembly->resolveType("Complex");
+                vv = this->parseComplex(static_cast<const PrimitiveType*>(tt), node);
+            }
             else if(tk == BSQON_AST_TAG_StringValue) {
                 tt = this->assembly->resolveType("String");
                 vv = this->parseString(static_cast<const PrimitiveType*>(tt), node);
@@ -2688,10 +2727,6 @@ namespace bsqon
             else if(tk == BSQON_AST_TAG_ByteBufferValue) {
                 tt = this->assembly->resolveType("ByteBuffer");
                 vv = this->parseByteBuffer(static_cast<const PrimitiveType*>(tt), node);
-            }
-            else if(tk == BSQON_AST_TAG_RegexValue) {
-                tt = this->assembly->resolveType("Regex");
-                vv = this->parseRegex(static_cast<const PrimitiveType*>(tt), node);
             }
             else if(tk == BSQON_AST_TAG_DateTimeValue) {
                 tt = this->assembly->resolveType("DateTime");
@@ -2732,6 +2767,34 @@ namespace bsqon
             else if(tk == BSQON_AST_TAG_SHAHashcodeValue) {
                 tt = this->assembly->resolveType("SHAContentHash");
                 vv = this->parseSHAHashcode(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaDateTimeValue) {
+                tt = this->assembly->resolveType("DataTimeDelta");
+                vv = this->parseDeltaDateTime(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaPlainDateValue) {
+                tt = this->assembly->resolveType("PlainDateDelta");
+                vv = this->parseDeltaPlainDate(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaPlainTimeValue) {
+                tt = this->assembly->resolveType("PlainTimeDelta");
+                vv = this->parseDeltaPlainTime(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaISOTimeStampValue) {
+                tt = this->assembly->resolveType("ISOTimestampDelta");
+                vv = this->parseDeltaISOTimeStamp(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaSecondsValue) {
+                tt = this->assembly->resolveType("SecondsDelta");
+                vv = this->parseDeltaSeconds(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaTickValue) {
+                tt = this->assembly->resolveType("TickTimeDelta");
+                vv = this->parseDeltaTick(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if(tk == BSQON_AST_TAG_DeltaLogicalValue) {
+                tt = this->assembly->resolveType("LogicalTimeDelta");
+                vv = this->parseDeltaLogical(static_cast<const PrimitiveType*>(tt), node);
             }
             else {
                 this->addError("Cannot implicitly resolve ", Parser::convertSrcPos(node->pos));
@@ -2807,6 +2870,18 @@ namespace bsqon
     {
         if(node->tag == BSQON_AST_TAG_IdentifierValue) {
             return this->parseIdentifier(t, node);
+        }
+        else if(node->tag == BSQON_AST_TAG_ScopedNameValue) {
+            xxxx;
+        }
+        else if(node->tag == BSQON_AST_TAG_AccessIndexValue) {
+            xxxx;
+        }
+        else if(node->tag == BSQON_AST_TAG_AccessNameValue) {
+            xxxx;
+        }
+        else if(node->tag == BSQON_AST_TAG_AccessKeyValue) {
+            xxxx;
         }
         else if(node->tag == BSQON_AST_TAG_LetInValue) {
             return this->parseLetIn(t, node);
