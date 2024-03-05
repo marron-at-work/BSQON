@@ -2617,16 +2617,48 @@ namespace bsqon
             vv = this->parseASCIIStringOf(static_cast<const ASCIIStringOfType*>(tt), node);
         }
         else if(tk == BSQON_AST_TAG_StringSliceValue) {
-            auto ssbase = this->parseValue()
-            if(ssnode->data->)
-            xxxx;
-            tt = this->assembly->resolveType("StringView");
-            vv = this->parseStringSlice(static_cast<const PrimitiveType*>(tt), node);
+            auto ssnode = BSQON_AST_NODE_AS(StringSliceValue, node);
+            auto ssbase = this->parseValue(this->assembly->resolveType("Any"), ssnode->data); //really want String | ASCIIString but may not be registed
+
+            if(ssbase->kind != ValueKind::StringValueKind && ssbase->kind != ValueKind::ASCIIStringValueKind) {
+                this->addError("Invalid StringSlice value base type", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            auto minval = this->parseValue(this->assembly->resolveType("Int"), ssnode->start);
+            auto maxval = this->parseValue(this->assembly->resolveType("Int"), ssnode->end);
+            if(minval-> kind != ValueKind::IntNumberValueKind || maxval-> kind != ValueKind::IntNumberValueKind) {
+                this->addError("Invalid StringSlice value start or end", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            if(ssbase->kind == ValueKind::StringValueKind) {
+                tt = this->assembly->resolveType("StringView");
+                vv = new StringSliceValue(tt, Parser::convertSrcPos(node->pos), &static_cast<StringValue*>(ssbase)->sv, static_cast<IntNumberValue*>(minval)->cnv, static_cast<IntNumberValue*>(maxval)->cnv);
+            }
+            else {
+                tt = this->assembly->resolveType("ASCIIStringView");
+                vv = new ASCIIStringSliceValue(tt, Parser::convertSrcPos(node->pos), &static_cast<ASCIIStringValue*>(ssbase)->sv, static_cast<IntNumberValue*>(minval)->cnv, static_cast<IntNumberValue*>(maxval)->cnv);
+            }
         }
         else if(tk == BSQON_AST_TAG_RegexValue) {
-            xxxx;
-                tt = this->assembly->resolveType("Regex");
-                vv = this->parseRegex(static_cast<const PrimitiveType*>(tt), node);
+            auto rnode = BSQON_AST_NODE_AS(LiteralStringValue, node);
+            if(*rnode->data->bytes == '\\') {
+                tt = this->assembly->resolveType("UnicodeRegex");
+                vv = this->parseUnicodeRegex(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if (*rnode->data->bytes == 'a') {
+                tt = this->assembly->resolveType("ASCIIRegex");
+                vv = this->parseASCIIRegex(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else if (*rnode->data->bytes == 'p') {
+                tt = this->assembly->resolveType("PathRegex");
+                vv = this->parsePathRegex(static_cast<const PrimitiveType*>(tt), node);
+            }
+            else {
+                this->addError("Invalid regex value", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
         }
         else if(tk == BSQON_AST_TAG_PathValue) {
             auto pnode = BSQON_AST_NODE_AS(PathValue, node);
@@ -2637,7 +2669,7 @@ namespace bsqon
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
 
-            char pfx = *pnode->data->data->bytes;
+            char pfx = *BSQON_AST_NODE_AS(LiteralStringValue, pnode->data)->data->bytes;
             if(pfx == 'g') {
                 tt = this->assembly->resolveType("PathGlob<" + oftype->tkey + ">");
                 if(tt->tag != TypeTag::TYPE_PATH_GLOB) {
@@ -2817,7 +2849,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        std::string vname = BSQON_AST_asNameNode(node)->data;
+        std::string vname = BSQON_AST_NODE_AS(NameValue, node)->data;
         if(!this->vbinds.contains(vname)) {
             this->addError("Unknown let binding " + vname, Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -2844,7 +2876,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto lnode = BSQON_AST_asLetInNode(node);
+        auto lnode = BSQON_AST_NODE_AS(LetInValue, node);
 
         std::string vname = lnode->vname;
         if(this->vbinds.contains(vname)) {
