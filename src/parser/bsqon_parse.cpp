@@ -962,17 +962,17 @@ namespace bsqon
 
         auto sl = BSQON_AST_NODE_AS(StringSliceValue, node);
         auto sval = this->parseValue(this->assembly->resolveType("String"), sl->data);
-        auto startval = this->parseValue(this->assembly->resolveType("Int"), sl->start);
-        auto endval = this->parseValue(this->assembly->resolveType("Int"), sl->end);
+        auto startval = sl->start != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->start) : nullptr;
+        auto endval = sl->end != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->end) : nullptr;
 
-        if(sval->vtype->tkey != "String" || startval->vtype->tkey != "Int" || endval->vtype->tkey != "Int") {
+        if(sval->vtype->tkey != "String" || (startval != nullptr && startval->vtype->tkey != "Int") || (endval != nullptr && endval->vtype->tkey != "Int")) {
             this->addError("Invalid type in StringView literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
         auto sstr = &static_cast<StringValue*>(sval)->sv;
-        auto start = static_cast<IntNumberValue*>(startval)->cnv;
-        auto end = static_cast<IntNumberValue*>(endval)->cnv;
+        auto start = startval != nullptr ? static_cast<IntNumberValue*>(startval)->cnv : 0;
+        auto end = endval != nullptr ? static_cast<IntNumberValue*>(endval)->cnv : sstr->size();
 
         //convert to 0 based front indexing -- check bounds
         if(start < 0) {
@@ -2850,23 +2850,39 @@ namespace bsqon
         }
 
         std::string vname = BSQON_AST_NODE_AS(NameValue, node)->data;
-        if(!this->vbinds.contains(vname)) {
-            this->addError("Unknown let binding " + vname, Parser::convertSrcPos(node->pos));
-            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+
+        if(vname == "$npos") {
+            if(t->tkey != "Int" || t->tkey != "Nat") {
+                this->addError("Expected result of type " + t->tkey + " but got $npos", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            return nullptr;
         }
+        else {
+            if(!this->vbinds.contains(vname)) {
+                this->addError("Unknown let binding " + vname, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
 
-        const Type* oftype = this->vbinds[vname]->vtype;
+            const Type* oftype = this->vbinds[vname]->vtype;
 
-        if(oftype->isUnresolved()) {
-            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            if(oftype->isUnresolved()) {
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            if(!this->assembly->checkConcreteSubtype(oftype, t)) {
+                this->addError("Expected result of type " + t->tkey + " but got " + oftype->tkey, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            return this->vbinds[vname];
         }
+    }
 
-        if(!this->assembly->checkConcreteSubtype(oftype, t)) {
-            this->addError("Expected result of type " + t->tkey + " but got " + oftype->tkey, Parser::convertSrcPos(node->pos));
-            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
-        }
-
-        return this->vbinds[vname];
+    Value* Parser::parseScopedName(const Type* t, const BSQON_AST_Node* node)
+    {
+        xxxx;
     }
 
     Value* Parser::parseLetIn(const Type* t, const BSQON_AST_Node* node)
@@ -2898,22 +2914,105 @@ namespace bsqon
         return res;
     }
 
+    Value* Parser::parseAccessIndex(const Type* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_AccessIndexValue) {
+            this->addError("Expected access index value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto innode = BSQON_AST_NODE_AS(AccessIndexValue, node);
+
+        auto atype = this->resolveAndCheckType("Tuple", Parser::convertSrcPos(node->pos));
+        auto aidxstr = std::string(innode->idx);
+
+        int64_t aindex = 0;
+        this->isValidNat(aidxstr, aindex);
+        
+        Value* lvalue = this->parseValue(atype, innode->value);
+        auto avalue = static_cast<TupleValue*>(lvalue);
+
+        if(aindex < 0 || aindex >= avalue->values.size()) {
+            this->addError("Index out of range", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto res = avalue->entries[aindex];
+        if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
+            this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return res;
+    }
+
+    Value* Parser::parseAccessName(const Type* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_AccessNameValue) {
+            this->addError("Expected access index value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto nnode = BSQON_AST_NODE_AS(AccessIndexValue, node);
+
+        auto atype = this->resolveAndCheckType("Any", Parser::convertSrcPos(node->pos));
+        auto anxstr = std::string(innode->idx);
+        
+        Value* lvalue = this->parseValue(atype, innode->value);
+        if(lvalue->kind != ValueKind::RecordValueKind && lvalue->kind != ValueKind::EntityValueKind) {
+            this->addError("Expected record or entity value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        Value* res = nullptr;
+        if(lvalue->kind == ValueKind::RecordValueKind) {
+            auto avalue = static_cast<RecordValue*>(lvalue);
+            if(avalue->entries.contains(anxstr)) {
+                res = avalue->entries[anxstr];
+            }
+        }
+        else {
+            xxxx;
+        }
+        
+        if(aindex < 0 || aindex >= avalue->values.size()) {
+            this->addError("Index out of range", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto res = avalue->entries[aindex];
+
+
+
+        if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
+            this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return res;
+    }
+
+    Value* Parser::parseAccessKey(const Type* t, const BSQON_AST_Node* node)
+    {
+        xxxx;
+    }
+
     Value* Parser::parseValue(const Type* t, const BSQON_AST_Node* node)
     {
         if(node->tag == BSQON_AST_TAG_IdentifierValue) {
             return this->parseIdentifier(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_ScopedNameValue) {
-            xxxx;
+            return this->parseScopedName(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_AccessIndexValue) {
-            xxxx;
+            return this->parseAccessIndex(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_AccessNameValue) {
-            xxxx;
+            return this->parseAccessName(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_AccessKeyValue) {
-            xxxx;
+            return this->parseAccessKey(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_LetInValue) {
             return this->parseLetIn(t, node);

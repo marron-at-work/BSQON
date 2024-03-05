@@ -265,7 +265,11 @@ namespace bsqon
         Value* parseValueUnion(const UnionType* t, const BSQON_AST_Node* node);
 
         Value* parseIdentifier(const Type* t, const BSQON_AST_Node* node);
+        Value* parseScopedName(const Type* t, const BSQON_AST_Node* node);
         Value* parseLetIn(const Type* t, const BSQON_AST_Node* node);
+        Value* parseAccessIndex(const Type* t, const BSQON_AST_Node* node);
+        Value* parseAccessName(const Type* t, const BSQON_AST_Node* node);
+        Value* parseAccessKey(const Type* t, const BSQON_AST_Node* node);
 
         Value* parseValue(const Type* t, const BSQON_AST_Node* node);
     };
