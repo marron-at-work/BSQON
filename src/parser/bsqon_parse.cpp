@@ -1560,8 +1560,14 @@ namespace bsqon
             return new ErrorValue(t, spos);
         }
 
-        const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
-        PathValue* popt = PathValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
+        //const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
+        //
+        //TODO: need to add path validation here
+        //
+        bpath::PathGlob* validator = nullptr;
+        this->addError("TODO: path validators!!!", spos);
+
+        PathValue* popt = PathValue::createFromParse(t, spos, node->data->bytes, node->data->len, validator);
 
         if(popt == nullptr) {
             this->addError("Invalid characters in path (does not validate)", spos);
@@ -1600,8 +1606,14 @@ namespace bsqon
             return new ErrorValue(t, spos);
         }
 
-        const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
-        PathFragmentValue* popt = PathFragmentValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
+        //const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
+        //
+        //TODO: need to add path validation here
+        //
+        bpath::PathGlob* validator = nullptr;
+        this->addError("TODO: path validators!!!", spos);
+
+        PathFragmentValue* popt = PathFragmentValue::createFromParse(t, spos, node->data->bytes, node->data->len, validator);
 
         if(popt == nullptr) {
             this->addError("Invalid characters in path (does not validate)", spos);
@@ -1635,8 +1647,14 @@ namespace bsqon
 
     Value* Parser::parsePathGlobNaked(const PathGlobType* t, SourcePos spos, const BSQON_AST_NODE(LiteralStringValue)* node)
     {
-        const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
-        PathGlobValue* popt = PathGlobValue::createFromParse(t, spos, node->data->bytes, node->data->len, vpath);
+        //const BSQPath* vpath = this->assembly->pthvalidators.at(t->oftype);
+        //
+        //TODO: need to add path validation here
+        //
+        bpath::PathGlob* validator = nullptr;
+        this->addError("TODO: path validators!!!", spos);
+
+        PathGlobValue* popt = PathGlobValue::createFromParse(t, spos, node->data->bytes, node->data->len, validator);
 
         if(popt == nullptr) {
             this->addError("Invalid characters in pathGlob (does not validate)", spos);
@@ -2882,7 +2900,30 @@ namespace bsqon
 
     Value* Parser::parseScopedName(const Type* t, const BSQON_AST_Node* node)
     {
-        xxxx;
+        if(node->tag != BSQON_AST_TAG_ScopedNameValue) {
+            this->addError("Expected ScopedName value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto snode = BSQON_AST_NODE_AS(ScopedNameValue, node);
+        
+        auto simplerootname = std::string(snode->root->tag == BSQON_AST_TAG_NominalType ? BSQON_AST_NODE_AS(NominalType, snode->root)->name : "[COMPOUND]");
+        if(this->assembly->namespaces.contains(simplerootname)) {
+            auto ns = this->assembly->namespaces.at(simplerootname);
+
+            this->addError("TODO: consts in namespace!!! " + ns->ns, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+        else {
+            const Type* ttype = this->parseTypeRoot(snode->root);
+            if(ttype->tag == TypeTag::TYPE_ENUM) {
+                return this->parseEnum(static_cast<const EnumType*>(ttype), node);
+            }
+            else {
+                this->addError("TODO: consts in type!!! " + ttype->tkey, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            } 
+        }
     }
 
     Value* Parser::parseLetIn(const Type* t, const BSQON_AST_Node* node)
@@ -2937,7 +2978,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto res = avalue->entries[aindex];
+        auto res = avalue->values[aindex];
         if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
             this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -2953,12 +2994,12 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto nnode = BSQON_AST_NODE_AS(AccessIndexValue, node);
+        auto nnode = BSQON_AST_NODE_AS(AccessNameValue, node);
 
         auto atype = this->resolveAndCheckType("Any", Parser::convertSrcPos(node->pos));
-        auto anxstr = std::string(innode->idx);
+        auto anxstr = std::string(nnode->name);
         
-        Value* lvalue = this->parseValue(atype, innode->value);
+        Value* lvalue = this->parseValue(atype, nnode->value);
         if(lvalue->kind != ValueKind::RecordValueKind && lvalue->kind != ValueKind::EntityValueKind) {
             this->addError("Expected record or entity value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -2967,23 +3008,29 @@ namespace bsqon
         Value* res = nullptr;
         if(lvalue->kind == ValueKind::RecordValueKind) {
             auto avalue = static_cast<RecordValue*>(lvalue);
-            if(avalue->entries.contains(anxstr)) {
-                res = avalue->entries[anxstr];
+            auto atype = static_cast<const RecordType*>(avalue->vtype);
+
+            auto eeiter = std::find(atype->entries.cbegin(), atype->entries.cend(), anxstr);
+            if(eeiter == atype->entries.cend()) {
+                this->addError("Unknown property " + anxstr, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
+ 
+            res = avalue->values[std::distance(atype->entries.cbegin(), eeiter)];    
         }
         else {
-            xxxx;
+            auto avalue = static_cast<EntityValue*>(lvalue);
+            auto atype = static_cast<const StdEntityType*>(avalue->vtype);
+
+            auto eeiter = std::find(atype->fields.cbegin(), atype->fields.cend(), anxstr);
+            if(eeiter == atype->fields.cend()) {
+                this->addError("Unknown field " + anxstr, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+ 
+            res = avalue->fieldvalues[std::distance(atype->fields.cbegin(), eeiter)]; 
         }
         
-        if(aindex < 0 || aindex >= avalue->values.size()) {
-            this->addError("Index out of range", Parser::convertSrcPos(node->pos));
-            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
-        }
-
-        auto res = avalue->entries[aindex];
-
-
-
         if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
             this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
