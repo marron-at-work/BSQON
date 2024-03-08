@@ -971,8 +971,8 @@ namespace bsqon
         }
 
         auto sstr = &static_cast<StringValue*>(sval)->sv;
-        auto start = startval != nullptr ? static_cast<IntNumberValue*>(startval)->cnv : 0;
-        auto end = endval != nullptr ? static_cast<IntNumberValue*>(endval)->cnv : sstr->size();
+        int64_t start = startval != nullptr ? static_cast<IntNumberValue*>(startval)->cnv : 0;
+        int64_t end = endval != nullptr ? static_cast<IntNumberValue*>(endval)->cnv : (int64_t)sstr->size();
 
         //convert to 0 based front indexing -- check bounds
         if(start < 0) {
@@ -983,7 +983,7 @@ namespace bsqon
             end = sstr->size() + end;
         }
         
-        if(start < 0 || start > end || end > sstr->size()) {
+        if(start < 0 || start > end || end > (int64_t)sstr->size()) {
             this->addError("Invalid bounds in StringView literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1009,8 +1009,8 @@ namespace bsqon
         }
 
         auto sstr = &static_cast<ASCIIStringValue*>(sval)->sv;
-        auto start = static_cast<IntNumberValue*>(startval)->cnv;
-        auto end = static_cast<IntNumberValue*>(endval)->cnv;
+        int64_t start = static_cast<IntNumberValue*>(startval)->cnv;
+        int64_t end = static_cast<IntNumberValue*>(endval)->cnv;
 
         //convert to 0 based front indexing -- check bounds
         if(start < 0) {
@@ -1021,7 +1021,7 @@ namespace bsqon
             end = sstr->size() + end;
         }
         
-        if(start < 0 || start > end || end > sstr->size()) {
+        if(start < 0 || start > end || end > (int64_t)sstr->size()) {
             this->addError("Invalid bounds in StringView literal", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -1250,7 +1250,7 @@ namespace bsqon
         }
 
         auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
-        auto sign = dstr.front();
+        char8_t sign = dstr.front();
         dstr = dstr.substr(1);
 
         auto tstr = dstr.substr(dstr.find('T') + 1);
@@ -1275,7 +1275,7 @@ namespace bsqon
         }
 
         auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
-        auto sign = dstr.front();
+        char8_t sign = dstr.front();
         dstr = dstr.substr(1);
 
         uint16_t year, month;
@@ -1298,7 +1298,7 @@ namespace bsqon
         }
 
         auto tstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
-        auto sign = tstr.front();
+        char8_t sign = tstr.front();
         tstr = tstr.substr(1);
 
         uint32_t hour, minute, second;
@@ -1320,7 +1320,7 @@ namespace bsqon
         }
 
         auto dstr = std::string(BSQON_AST_NODE_AS(LiteralStandardValue, node)->data);
-        auto sign = dstr.front();
+        char8_t sign = dstr.front();
         dstr = dstr.substr(1);
 
         auto tstr = dstr.substr(dstr.find('T') + 1);
@@ -2480,14 +2480,15 @@ namespace bsqon
     Value* Parser::parseValueConcept(const Type* t, const BSQON_AST_Node* node)
     {
         if(t->tag == TypeTag::TYPE_OPTION) {
+            return nullptr;
             const OptionType* otype = static_cast<const OptionType*>(t);
                 
             if(node->tag == BSQON_AST_TAG_NothingValue) {
                 return this->parseNothing(static_cast<const PrimitiveType*>(this->assembly->resolveType("Nothing")), node);
             }
-            else if(node->tag == BSQON_AST_TAG_TypedValue) {
+            else {
                 if(node->tag != BSQON_AST_TAG_TypedValue) {
-                    this->addError("Values of Result<T, E> type must be tagged", Parser::convertSrcPos(node->pos));
+                    this->addError("Values of Option<T> type must be tagged", Parser::convertSrcPos(node->pos));
                     return new ErrorValue(t, Parser::convertSrcPos(node->pos));
                 }
 
@@ -2604,7 +2605,7 @@ namespace bsqon
                 this->addError("Invalid tagged value " + tt->tkey, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
-            vv = this->parseValueDirect(tt, BSQON_AST_NODE_AS(TypedValue, node)->value);
+            vv = this->parseValue(tt, BSQON_AST_NODE_AS(TypedValue, node)->value);
         }
         else if(tk == BSQON_AST_TAG_StringOfValue) {
             const Type* oftype = this->parseTypeRoot(BSQON_AST_NODE_AS(StringOfValue, node)->type);
@@ -2978,7 +2979,7 @@ namespace bsqon
         Value* lvalue = this->parseValue(atype, innode->value);
         auto avalue = static_cast<TupleValue*>(lvalue);
 
-        if(aindex < 0 || aindex >= avalue->values.size()) {
+        if(aindex < 0 || aindex >= (int64_t)avalue->values.size()) {
             this->addError("Index out of range", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
@@ -3015,7 +3016,7 @@ namespace bsqon
             auto avalue = static_cast<RecordValue*>(lvalue);
             auto atype = static_cast<const RecordType*>(avalue->vtype);
 
-            auto eeiter = std::find(atype->entries.cbegin(), atype->entries.cend(), anxstr);
+            auto eeiter = std::find_if(atype->entries.cbegin(), atype->entries.cend(), [&anxstr](const RecordTypeEntry& entry) { return entry.pname == anxstr; });
             if(eeiter == atype->entries.cend()) {
                 this->addError("Unknown property " + anxstr, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -3027,7 +3028,7 @@ namespace bsqon
             auto avalue = static_cast<EntityValue*>(lvalue);
             auto atype = static_cast<const StdEntityType*>(avalue->vtype);
 
-            auto eeiter = std::find(atype->fields.cbegin(), atype->fields.cend(), anxstr);
+            auto eeiter = std::find_if(atype->fields.cbegin(), atype->fields.cend(), [&anxstr](const EntityTypeFieldEntry& entry) { return entry.fname == anxstr; });
             if(eeiter == atype->fields.cend()) {
                 this->addError("Unknown field " + anxstr, Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -3063,11 +3064,10 @@ namespace bsqon
 
         if(lvalue->kind == ValueKind::ListValueKind) {
             auto avalue = static_cast<ListValue*>(lvalue);
-            auto atype = static_cast<const ListType*>(avalue->vtype);
 
             auto akey = this->parseValue(this->resolveAndCheckType("Nat", Parser::convertSrcPos(node->pos)), knode->kk);
             uint64_t aindex = static_cast<NatNumberValue*>(akey)->cnv;
-            if(aindex < 0 || aindex >= avalue->vals.size()) {
+            if(aindex >= avalue->vals.size()) {
                 this->addError("Index out of range", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
             }
