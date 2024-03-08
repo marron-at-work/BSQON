@@ -962,8 +962,8 @@ namespace bsqon
 
         auto sl = BSQON_AST_NODE_AS(StringSliceValue, node);
         auto sval = this->parseValue(this->assembly->resolveType("String"), sl->data);
-        auto startval = sl->start != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->start) : nullptr;
-        auto endval = sl->end != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->end) : nullptr;
+        auto startval = sl->start != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->start, true) : nullptr;
+        auto endval = sl->end != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->end, true) : nullptr;
 
         if(sval->vtype->tkey != "String" || (startval != nullptr && startval->vtype->tkey != "Int") || (endval != nullptr && endval->vtype->tkey != "Int")) {
             this->addError("Invalid type in StringView literal", Parser::convertSrcPos(node->pos));
@@ -1000,8 +1000,8 @@ namespace bsqon
 
         auto sl = BSQON_AST_NODE_AS(StringSliceValue, node);
         auto sval = this->parseValue(this->assembly->resolveType("String"), sl->data);
-        auto startval = this->parseValue(this->assembly->resolveType("Int"), sl->start);
-        auto endval = this->parseValue(this->assembly->resolveType("Int"), sl->end);
+        auto startval = sl->start != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->start, true) : nullptr;
+        auto endval = sl->end != NULL ? this->parseValue(this->assembly->resolveType("Int"), sl->end, true) : nullptr;
 
         if(sval->vtype->tkey != "ASCIIString" || startval->vtype->tkey != "Int" || endval->vtype->tkey != "Int") {
             this->addError("Invalid type in ASCIIStringView literal", Parser::convertSrcPos(node->pos));
@@ -2860,7 +2860,7 @@ namespace bsqon
         return vv;
     }
 
-    Value* Parser::parseIdentifier(const Type* t, const BSQON_AST_Node* node)
+    Value* Parser::parseIdentifier(const Type* t, const BSQON_AST_Node* node, bool nposok)
     {
         if(node->tag != BSQON_AST_TAG_IdentifierValue) {
             this->addError("Expected Identifier value", Parser::convertSrcPos(node->pos));
@@ -2870,6 +2870,11 @@ namespace bsqon
         std::string vname = BSQON_AST_NODE_AS(NameValue, node)->data;
 
         if(vname == "$npos") {
+            if(!nposok) {
+                this->addError("Special var $npos not allowed in this position", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
             if(t->tkey != "Int" || t->tkey != "Nat") {
                 this->addError("Expected result of type " + t->tkey + " but got $npos", Parser::convertSrcPos(node->pos));
                 return new ErrorValue(t, Parser::convertSrcPos(node->pos));
@@ -3041,13 +3046,66 @@ namespace bsqon
 
     Value* Parser::parseAccessKey(const Type* t, const BSQON_AST_Node* node)
     {
-        xxxx;
+        if(node->tag != BSQON_AST_TAG_AccessKeyValue) {
+            this->addError("Expected access index value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto knode = BSQON_AST_NODE_AS(AccessKeyValue, node);
+
+        auto atype = this->resolveAndCheckType("Any", Parser::convertSrcPos(node->pos)); 
+        Value* lvalue = this->parseValue(atype, knode->value);
+
+        if(lvalue->kind != ValueKind::ListValueKind && lvalue->kind != ValueKind::MapValueKind) {
+            this->addError("Expected list or map value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        if(lvalue->kind == ValueKind::ListValueKind) {
+            auto avalue = static_cast<ListValue*>(lvalue);
+            auto atype = static_cast<const ListType*>(avalue->vtype);
+
+            auto akey = this->parseValue(this->resolveAndCheckType("Nat", Parser::convertSrcPos(node->pos)), knode->kk);
+            uint64_t aindex = static_cast<NatNumberValue*>(akey)->cnv;
+            if(aindex < 0 || aindex >= avalue->vals.size()) {
+                this->addError("Index out of range", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            auto res = avalue->vals[aindex];
+            if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
+                this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            return res;
+        }
+        else {
+            auto avalue = static_cast<MapValue*>(lvalue);
+            auto atype = static_cast<const MapType*>(avalue->vtype);
+
+            auto akey = this->parseValue(this->resolveAndCheckType(atype->ktype, Parser::convertSrcPos(node->pos)), knode->kk);      
+            auto aiter = std::lower_bound(avalue->vals.begin(), avalue->vals.end(), akey, [](const MapEntryValue* v1, const Value* v2) { return Value::keyCompare(v1->key, v2) < 0; });
+
+            if(aiter == avalue->vals.end() || Value::keyCompare((*aiter)->key, akey) != 0) {
+                this->addError("Key not found in map", Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            auto res = (*aiter)->val;
+            if(!this->assembly->checkConcreteSubtype(res->vtype, t)) {
+                this->addError("Expected result of type " + t->tkey + " but got " + res->vtype->tkey, Parser::convertSrcPos(node->pos));
+                return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+            }
+
+            return res;
+        }
     }
 
-    Value* Parser::parseValue(const Type* t, const BSQON_AST_Node* node)
+    Value* Parser::parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok)
     {
         if(node->tag == BSQON_AST_TAG_IdentifierValue) {
-            return this->parseIdentifier(t, node);
+            return this->parseIdentifier(t, node, nposok);
         }
         else if(node->tag == BSQON_AST_TAG_ScopedNameValue) {
             return this->parseScopedName(t, node);

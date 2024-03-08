@@ -42,9 +42,9 @@ PARSER_HEADERS=$(PARSER_GEN_DIR)bytestring.h $(PARSER_GEN_DIR)bsqon_ast_common.h
 PARSER_SOURCES=$(PARSER_GEN_DIR)bytestring.c $(PARSER_GEN_DIR)bsqon_ast_common.c $(PARSER_GEN_DIR)bsqon_ast.c $(OUT_OBJ)bsqon.tab.c $(OUT_OBJ)lex.yy.c
 PARSER_OBJS=$(OUT_OBJ)bytestring.o $(OUT_OBJ)bsqon_ast_common.o $(OUT_OBJ)bsqon_ast.o $(OUT_OBJ)bsqon.tab.o $(OUT_OBJ)lex.yy.o
 
-BSQON_HEADERS=$(SRC_DIR)common.h $(INFO_DIR)type_info.h $(INFO_DIR)bsqon.h
-BSQON_SOURCES=$(INFO_DIR)type_info.cpp $(INFO_DIR)bsqon.cpp 
-BSQON_OBJS=$(OUT_OBJ)type_info.o $(OUT_OBJ)bsqon.o
+BSQON_HEADERS=$(SRC_DIR)common.h $(INFO_DIR)type_info.h $(INFO_DIR)bsqon.h $(PARSER_DIR)bsqon_parse.h
+BSQON_SOURCES=$(INFO_DIR)type_info.cpp $(INFO_DIR)bsqon.cpp $(PARSER_DIR)bsqon_parse.cpp
+BSQON_OBJS=$(OUT_OBJ)type_info.o $(OUT_OBJ)bsqon.o $(OUT_OBJ)bsqon_parse.o
 
 MAKEFLAGS += -j4
 
@@ -54,6 +54,10 @@ bsqon: $(BSQON_HEADERS) $(BSQON_SOURCES) $(PARSER_OBJS) $(BSQON_OBJS)
 	@mkdir -p $(BIN_DIR)
 	@echo "Building bsqon"
 # $(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(BSQON_SOURCES) $(PARSER_OBJS) -lfl -lgmp
+
+$(OUT_OBJ)bsqon_parse.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(PARSER_DIR)bsqon_parse.cpp
+	@mkdir -p $(OUT_OBJ)
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)bsqon_parse.o -c $(PARSER_DIR)bsqon_parse.cpp
 
 $(OUT_OBJ)bsqon.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(INFO_DIR)bsqon.cpp
 	@mkdir -p $(OUT_OBJ)

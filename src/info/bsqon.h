@@ -1465,10 +1465,10 @@ namespace bsqon
     class MapEntryValue : public Value
     {
     public:
-        const Value* key;
-        const Value* val;
+        Value* key;
+        Value* val;
 
-        MapEntryValue(const Type* vtype, SourcePos spos, const Value* key, const Value* val) : Value(ValueKind::MapEntryValueKind, vtype, spos), key(key), val(val) { ; }
+        MapEntryValue(const Type* vtype, SourcePos spos, Value* key, Value* val) : Value(ValueKind::MapEntryValueKind, vtype, spos), key(key), val(val) { ; }
         virtual ~MapEntryValue() = default;
         
         virtual std::u8string toString() const override
