@@ -5,12 +5,86 @@
 #include <iostream>
 #include <fstream>
 
-int main(int argc, char** argv)
+bool processArgs(int argc, char** argv, std::string& metadata, std::string& type, std::string& data, bool& loadenv)
 {
-    //argv is a file name to a JSON file
-    if(argc < 3) {
-        printf("usage: bsqon <metadata.json> <type> [data.bsqon]\n");
-        exit(1);
+    if(argc < 2) {
+        printf("usage: bsqon [metadata.json] [type] data.bsqon\n");
+        return false;
+    }
+
+    loadenv = false;
+    std::vector<std::string> args;
+    for(int i = 1; i < argc; ++i) {
+        if(strcmp(argv[i], "--loadenv") == 0) {
+            loadenv = true;
+        }
+        else {
+            args.push_back(argv[i]);
+        }
+    }
+
+    size_t apos = 1;
+    if(apos < args.size() && args[apos].ends_with(".json")) {
+        metadata = args[apos];
+        apos++;
+    }
+    else {
+        metadata = "<implicit>";
+    }
+
+    if(apos < args.size() && !args[apos].ends_with(".bsqon")) {
+        type = args[apos];
+        apos++;
+    }
+    else {
+        type = "<implicit>";
+    }
+
+    data = "<unset>";
+    if(apos < args.size() && args[apos].ends_with(".bsqon")) {
+        data = args[apos];
+        apos++;
+    }
+    else {
+        printf("usage: bsqon [metadata.json] [type] data.bsqon\n");
+        printf("missing bsqon file\n");
+        return false;
+    }
+
+    if(apos < args.size()) {
+        printf("usage: bsqon [metadata.json] [type] data.bsqon\n");
+        printf("too many arguments\n");
+        return false;
+    }
+
+    return true;
+}
+
+std::map<std::string, std::string>* loadEnvironment(char** envp)
+{
+    std::map<std::string, std::string>* envmap = new std::map<std::string, std::string>();
+    for (char** env = envp; *env != 0; env++)
+    {
+        std::string ename(*env);
+        std::string evalue(getenv(*env));
+        
+        envmap->insert(std::make_pair(ename, evalue));
+    }
+
+    return envmap;
+}
+
+int main(int argc, char** argv, char **envp)
+{
+    std::string metadata, type, data;
+    bool loadenv = false;
+    if(!processArgs(argc, argv, metadata, type, data, loadenv)) {
+        return 1;
+    }
+
+    std::map<std::string, std::string>* env = nullptr;
+    if(loadenv) {
+        env = loadEnvironment(envp);
     }
 
     //parse the JSON 
