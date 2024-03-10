@@ -73,6 +73,7 @@ int errorcount = 0;
 %token SYM_COMMA ","
 %token SYM_EQUALS "="
 %token SYM_UNDERSCORE "_"
+%token SYM_QUESTION "?"
 
 %token <str> TOKEN_NAT "nat literal"
 %token <str> TOKEN_INT "int literal"
@@ -120,7 +121,6 @@ int errorcount = 0;
 %token <str> TOKEN_TYPE_COMPONENT "type name"
 %token <str> TOKEN_UNSPEC_IDENTIFIER "unspec identifier"
 
-%token <str> TOKEN_ENV_KEY_IDENTIFIER "environment key identifier"
 %token <str> TOKEN_SHEBANG_LINE "shebang line"
 
 %token SYM_DOT "."

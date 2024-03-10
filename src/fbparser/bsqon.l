@@ -37,7 +37,6 @@ void yyerror(const char* s, ...);
 %x ASCII_STRING
 %x REGEX
 %x PATH_ITEM
-%x ENV_KEY_IDENTIFIER
 %x SHEBANG_LINE
 
 NON_ZERO_INTEGRAL ([1-9][0-9]*)
@@ -79,6 +78,7 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
 "="         { return SYM_EQUALS; }
 "."         { return SYM_DOT; }
 "_"         { return SYM_UNDERSCORE; }
+"?"         { return SYM_QUESTION; }
 
  /* keywords */
 "something" { return KW_SOMETHING; }
@@ -216,17 +216,6 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 [+-]{NON_ZERO_INTEGRAL}"."[0-9]{1,4}"ds" { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_SECONDS; }
 [+-]{NON_ZERO_INTEGRAL}"dt"              { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_TICK; }
 [+-]{NON_ZERO_INTEGRAL}"dl"              { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_LOGICAL; }
-
-
-<INITIAL>{
-"env["        { BEGIN(ENV_KEY_IDENTIFIER); string_buf_bs.len = 0; ByteStringStoreText("env["); }
-}
-<ENV_KEY_IDENTIFIER>{
-"]"           { BEGIN(INITIAL); ByteStringStoreChar(']'); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_ENV_KEY_IDENTIFIER; }
-<<EOF>>       { BEGIN(INITIAL); yyerror("Unclosed Environment Variable Access"); return YYEOF; }
-[ \t!-~]      { ByteStringStoreChar(yytext[0]); }
-.|\n          { yyerror("Invalid character (ignoring)"); return YYerror;}
-}
 
 <INITIAL>{
 "#!"          { BEGIN(SHEBANG_LINE); string_buf_bs.len = 0; ByteStringStoreText("#!"); }
