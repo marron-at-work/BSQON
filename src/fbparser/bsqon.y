@@ -120,6 +120,9 @@ int errorcount = 0;
 %token <str> TOKEN_TYPE_COMPONENT "type name"
 %token <str> TOKEN_UNSPEC_IDENTIFIER "unspec identifier"
 
+%token <str> TOKEN_ENV_KEY_IDENTIFIER "environment key identifier"
+%token <str> TOKEN_SHEBANG_LINE "shebang line"
+
 %token SYM_DOT "."
  
 %type <bsqon_type_node> bsqontypel_entry bsqonnominaltype bsqontupletype bsqonrecordtype bsqontype bsqontspec
