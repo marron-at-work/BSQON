@@ -218,7 +218,7 @@ sha3"{"[a-zA-Z0-9]+        { yyerror("Missing close bracket"); return YYerror; }
 [+-]{NON_ZERO_INTEGRAL}"dl"              { yylval.str = AST_STRDUP(yytext); return TOKEN_DELTA_LOGICAL; }
 
 <INITIAL>{
-"#!"          { BEGIN(SHEBANG_LINE); string_buf_bs.len = 0; ByteStringStoreText("#!"); }
+"#!"          { BEGIN(SHEBANG_LINE); string_buf_bs.len = 0; ByteStringStoreText(yytext, yyleng); }
 }
 <SHEBANG_LINE>{
 "\n"          { BEGIN(INITIAL); yylval.bstr = bstrAlloc(string_buf_bs); return TOKEN_SHEBANG_LINE; }

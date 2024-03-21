@@ -66,6 +66,7 @@ int errorcount = 0;
 %token KW_SRC "$src"
 %token KW_LET "let"
 %token KW_IN "in"
+%token KW_ENV "env"
 
 %token SYM_DOUBLE_COLON "::"
 %token SYM_ENTRY "=>"
@@ -131,7 +132,7 @@ int errorcount = 0;
 %type <bsqon_named_type_list_entry> bsqonnametypel_entry
 %type <bsqon_named_type_list> bsqonnametypel
 
-%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonrefbase bsqonidx bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
+%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonref bsqonidx bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
 %type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval bsqonroot
 %type <bsqon_value_list> bsqonvall
 
@@ -362,8 +363,8 @@ bsqonletexp:
   '(' KW_LET TOKEN_IDENTIFIER SYM_COLON bsqontype SYM_EQUALS bsqonval KW_IN bsqonval ')' { $$ = BSQON_AST_NODE_CONS(LetInValue, BSQON_AST_TAG_LetInValue, MK_SPOS_R(@1, @10), $3, $5, $7, $9); }
 ;
 
-bsqonrefbase: 
-   bsqonliteral | bsqonidentifier | bsqonscopedidentifier { $$ = $1; }
+bsqonref: 
+   bsqonliteral | bsqonidentifier | bsqonscopedidentifier | bsqonaccess { $$ = $1; }
 ;
 
 bsqonidx: 
@@ -371,12 +372,12 @@ bsqonidx:
 ;
 
 bsqonaccess:
-   bsqonrefbase SYM_DOT TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(AccessNameValue, BSQON_AST_TAG_AccessNameValue, MK_SPOS_R(@1, @3), $1, $3); }
-   | bsqonrefbase SYM_DOT TOKEN_NUMBERINO { $$ = BSQON_AST_NODE_CONS(AccessIndexValue, BSQON_AST_TAG_AccessIndexValue, MK_SPOS_R(@1, @3), $1, $3); }
-   | bsqonrefbase '[' bsqonterminal ']' { $$ = BSQON_AST_NODE_CONS(AccessKeyValue, BSQON_AST_TAG_AccessKeyValue, MK_SPOS_R(@1, @4), $1, $3); }
-   | bsqonrefbase '[' bsqonidx SYM_COLON  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
-   | bsqonrefbase '[' SYM_COLON bsqonidx  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
-   | bsqonrefbase '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
+   bsqonref SYM_DOT TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(AccessNameValue, BSQON_AST_TAG_AccessNameValue, MK_SPOS_R(@1, @3), $1, $3); }
+   | bsqonref SYM_DOT TOKEN_NUMBERINO { $$ = BSQON_AST_NODE_CONS(AccessIndexValue, BSQON_AST_TAG_AccessIndexValue, MK_SPOS_R(@1, @3), $1, $3); }
+   | bsqonref '[' bsqonterminal ']' { $$ = BSQON_AST_NODE_CONS(AccessKeyValue, BSQON_AST_TAG_AccessKeyValue, MK_SPOS_R(@1, @4), $1, $3); }
+   | bsqonref '[' bsqonidx SYM_COLON  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, $3, NULL); }
+   | bsqonref '[' SYM_COLON bsqonidx  ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @5), $1, NULL, $4); }
+   | bsqonref '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
 ;
 
 bsqonroot: 
