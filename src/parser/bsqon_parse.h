@@ -271,6 +271,16 @@ namespace bsqon
         Value* parseAccessName(const Type* t, const BSQON_AST_Node* node);
         Value* parseAccessKey(const Type* t, const BSQON_AST_Node* node);
 
+        Value* parseEnvAccess(const Type* t, const BSQON_AST_Node* node)
+        {
+            xxxx;
+        }
+
         Value* parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok=false);
+
+        BsqonDecl* parseBSQON(const BSQON_AST_Node* node)
+        {
+            xxxx;
+        }
     };
 }

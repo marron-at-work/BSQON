@@ -78,7 +78,6 @@ TYPE_IDENTIFIER ([A-Z][a-zA-Z0-9_]*)
 "="         { return SYM_EQUALS; }
 "."         { return SYM_DOT; }
 "_"         { return SYM_UNDERSCORE; }
-"?"         { return SYM_QUESTION; }
 
  /* keywords */
 "something" { return KW_SOMETHING; }

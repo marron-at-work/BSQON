@@ -35,6 +35,8 @@ int errorcount = 0;
    struct BSQON_AST_Node* bsqon_type_node;
    struct BSQON_AST_Node* bsqon_value_node;
 
+   struct BSQON_AST_Node* bsqon_decl;
+
    struct BSQON_AST_LIST_OF_TYPES* bsqon_type_list;
 
    struct BSQON_AST_NLIST_OF_TYPES_ENTRY bsqon_named_type_list_entry;
@@ -74,7 +76,6 @@ int errorcount = 0;
 %token SYM_COMMA ","
 %token SYM_EQUALS "="
 %token SYM_UNDERSCORE "_"
-%token SYM_QUESTION "?"
 
 %token <str> TOKEN_NAT "nat literal"
 %token <str> TOKEN_INT "int literal"
@@ -130,11 +131,13 @@ int errorcount = 0;
 %type <bsqon_type_list> bsqontypel bsqontermslist
 
 %type <bsqon_named_type_list_entry> bsqonnametypel_entry
-%type <bsqon_named_type_list> bsqonnametypel
+%type <bsqon_named_type_list> bsqonnametypel bsqonenvlist
 
 %type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonref bsqonidx bsqonpath bsqontypeliteral bsqonterminal bsqonenvaccess bsqon_mapentry
-%type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval bsqonroot
+%type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval
 %type <bsqon_value_list> bsqonvall
+
+%type <bsqon_decl> bsqoncomponent bsqonroot
 
 %type <bsqon_named_value_list_entry> bsqonnameval_entry
 %type <bsqon_named_value_list> bsqonnamevall
@@ -275,11 +278,11 @@ bsqontypeliteral:
 ;
 
 bsqonenvaccess: 
-   KW_ENV '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(, MK_SPOS_R(@1, @4), BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@3), "$env"), $3); }
+   KW_ENV '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(EnvAccessValue, BSQON_AST_TAG_EnvAccessValue, MK_SPOS_R(@1, @4), $3); }
 ;
 
 bsqonterminal: 
-   bsqonliteral | bsqonunspecvar | bsqonidentifier | bsqonscopedidentifier | bsqonstringof | bsqonpath | bsqontypeliteral { $$ = $1; }
+   bsqonliteral | bsqonunspecvar | bsqonidentifier | bsqonscopedidentifier | bsqonstringof | bsqonpath | bsqontypeliteral | bsqonenvaccess { $$ = $1; }
 ;
 
 bsqon_mapentry:
@@ -384,19 +387,23 @@ bsqonaccess:
    | bsqonref '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
 ;
 
+bsqonenvlist:
+   KW_ENV '{' '}' { $$ = NULL; }
+   | KW_ENV '{' TOKEN_IDENTIFIER SYM_COLON bsqontype '}' { $$ = BSQON_AST_NLIST_OF_TYPES_Singleton(BSQON_AST_NLIST_OF_TYPES_ENTRY_Create($3, $5)); }
+   | KW_ENV '{' bsqonnametypel TOKEN_IDENTIFIER SYM_COLON bsqontype '}' { $$ = BSQON_AST_NLIST_OF_TYPES_Reverse(BSQON_AST_NLIST_OF_TYPES_Push(BSQON_AST_NLIST_OF_TYPES_ENTRY_Create($4, $6), $3)); }
+   | KW_ENV '{' TOKEN_IDENTIFIER SYM_COLON error '}' { $$ = BSQON_AST_NLIST_OF_TYPES_Singleton(BSQON_AST_NLIST_OF_TYPES_ENTRY_Create($3, BSQON_AST_ERROR(MK_SPOS_S(@5)))); yyerrok; }
+   | KW_ENV '{' bsqonnametypel TOKEN_IDENTIFIER SYM_COLON error '}' { $$ = BSQON_AST_NLIST_OF_TYPES_Reverse(BSQON_AST_NLIST_OF_TYPES_Push(BSQON_AST_NLIST_OF_TYPES_ENTRY_Create($4, BSQON_AST_ERROR(MK_SPOS_S(@4))), $3)); yyerrok; }
+;
+
 bsqoncomponent:
-   bsqonval
-   | envlist bsqonval
-   | SYM_QUESTION bsqontype bsqonval
-   | SYM_QUESTION bsqontype envlist bsqonval
-   | TOKEN_SHEBANG_LINE bsqonval
-   | TOKEN_SHEBANG_LINE envlist bsqonval
-   | TOKEN_SHEBANG_LINE SYM_QUESTION bsqontype bsqonval
-   | TOKEN_SHEBANG_LINE SYM_QUESTION bsqontype envlist bsqonval
+   bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_S(@1), NULL, NULL, $1); }
+   | bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @2), NULL, $1, $2); }
+   | TOKEN_SHEBANG_LINE bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @2), $1, NULL, $2); }
+   | TOKEN_SHEBANG_LINE bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @3), $1, $2, $3); }
 ;
 
 bsqonroot: 
-   bsqonval { yybsqonval = $1; $$ = $1; }
+   bsqoncomponent { yybsqonval = $1; $$ = $1; }
    | error {yybsqonval = BSQON_AST_ERROR(MK_SPOS_S(@1)); $$ = BSQON_AST_ERROR(MK_SPOS_S(@1)); }
 ;
 %%

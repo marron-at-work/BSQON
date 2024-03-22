@@ -1669,7 +1669,7 @@ namespace bsqon
         const std::string rootname;
         const std::vector<SymbolicOffset> offsets;
 
-        SymbolValue(const Type* vtype, SourcePos spos, std::string sv, std::vector<SymbolicOffset>& offsets) : Value(ValueKind::SymbolicValueKind, vtype, spos), rootname(rootname), offsets(offsets) { ; }
+        SymbolValue(const Type* vtype, SourcePos spos, std::string rootname, std::vector<SymbolicOffset>& offsets) : Value(ValueKind::SymbolicValueKind, vtype, spos), rootname(rootname), offsets(offsets) { ; }
         virtual ~SymbolValue() = default;
         
         virtual std::u8string toString() const override

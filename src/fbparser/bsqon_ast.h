@@ -83,7 +83,9 @@ enum BSQON_AST_TAG
     BSQON_AST_TAG_AccessIndexValue,
     BSQON_AST_TAG_AccessKeyValue,
 
-    BSQON_AST_TAG_ScopedNameValue
+    BSQON_AST_TAG_ScopedNameValue,
+
+    BSQON_AST_TAG_BsqonDecl
 };
 
 struct BSQON_AST_Node
@@ -164,6 +166,9 @@ BSQON_AST_NODE_DECLARE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*,
 BSQON_AST_NODE_DECLARE_2(AccessNameValue, struct BSQON_AST_Node*, value, const char*, name)
 BSQON_AST_NODE_DECLARE_2(AccessIndexValue, struct BSQON_AST_Node*, value, const char*, idx)
 BSQON_AST_NODE_DECLARE_2(AccessKeyValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, kk)
+
+//DeclNodes
+BSQON_AST_NODE_DECLARE_3(BsqonDecl, const char*, shebangmeta, struct BSQON_AST_NLIST_OF_TYPES*, envtypes, struct BSQON_AST_Node*, value)
 
 enum BSQON_AST_TAG BSQON_AST_getTag(const struct BSQON_AST_Node* node);
 const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node);

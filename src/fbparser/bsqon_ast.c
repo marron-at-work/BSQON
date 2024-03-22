@@ -38,6 +38,8 @@ BSQON_AST_NODE_DEFINE_2(AccessNameValue, struct BSQON_AST_Node*, value, const ch
 BSQON_AST_NODE_DEFINE_2(AccessIndexValue, struct BSQON_AST_Node*, value, const char*, idx)
 BSQON_AST_NODE_DEFINE_2(AccessKeyValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, kk)
 
+BSQON_AST_NODE_DEFINE_3(BsqonDecl, const char*, shebangmeta, struct BSQON_AST_NLIST_OF_TYPES*, envtypes, struct BSQON_AST_Node*, value)
+
 enum BSQON_AST_TAG BSQON_AST_getTag(const struct BSQON_AST_Node* node)
 {
     return node->tag;
@@ -367,6 +369,30 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         const struct BSQON_AST_NODE(ScopedNameValue)* nn = BSQON_AST_NODE_AS(ScopedNameValue, node);
         BSQON_AST_print(nn->root);
         printf("::%s", nn->identifier);
+        break;
+    }
+    case BSQON_AST_TAG_BsqonDecl: {
+        const struct BSQON_AST_NODE(BsqonDecl)* nn = BSQON_AST_NODE_AS(BsqonDecl, node);
+        if(nn->shebangmeta != NULL) {
+            printf("#!%s", nn->shebangmeta);
+        }
+
+        if(nn->envtypes != NULL) {
+            if(nn->shebangmeta != NULL)
+            {
+                printf("\n");
+            }
+
+            printf("env{");
+            BSQON_AST_NLIST_OF_TYPES_Print(nn->envtypes);
+            printf("}");
+        }
+
+        if(nn->shebangmeta != NULL || nn->envtypes != NULL)
+        {
+            printf("\n");
+        }
+        BSQON_AST_print(nn->value);
         break;
     }
     default:

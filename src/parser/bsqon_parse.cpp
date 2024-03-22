@@ -3111,6 +3111,12 @@ xxxx;
         else if(node->tag == BSQON_AST_TAG_ScopedNameValue) {
             return this->parseScopedName(t, node);
         }
+        else if(node->tag == BSQON_AST_TAG_UnspecIdentifierValue) {
+            xxxx;
+        }
+        else if(node->tag == BSQON_AST_TAG_EnvAccessValue) {
+            xxxx;
+        }
         else if(node->tag == BSQON_AST_TAG_AccessIndexValue) {
             return this->parseAccessIndex(t, node);
         }
