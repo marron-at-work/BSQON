@@ -3000,6 +3000,7 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
+xxxx;
         auto nnode = BSQON_AST_NODE_AS(AccessNameValue, node);
 
         auto atype = this->resolveAndCheckType("Any", Parser::convertSrcPos(node->pos));

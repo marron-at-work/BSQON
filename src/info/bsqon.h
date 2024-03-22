@@ -77,7 +77,9 @@ namespace bsqon
         TypedeclValueKind,
         EntityValueKind,
         TupleValueKind,
-        RecordValueKind
+        RecordValueKind,
+
+        SymbolicValueKind
     };
 
     class Value
@@ -1629,6 +1631,53 @@ namespace bsqon
         const RecordType* getRecordType() const
         {
             return (const RecordType*)this->vtype;
+        }
+    };
+
+    enum class SymbolicOffsetTag
+    {
+        FieldOffset,
+        IndexOffset,
+        KeyOffset
+    };
+    
+    class SymbolicOffset
+    {
+    public:
+        SymbolicOffsetTag tag;
+        std::string offset;
+
+        SymbolicOffset(SymbolicOffsetTag tag, std::string offset) : tag(tag), offset(offset) { ; }
+
+        std::u8string toString() const
+        {
+            auto xstr = std::u8string(this->offset.cbegin(), this->offset.cend());
+            switch(this->tag) {
+                case SymbolicOffsetTag::FieldOffset:
+                    return u8"." + xstr;
+                case SymbolicOffsetTag::IndexOffset:
+                    return u8"." + xstr;
+                case SymbolicOffsetTag::KeyOffset:
+                    return u8"[" + xstr + u8"]";
+            }
+        }
+    };
+
+    class SymbolValue : public Value
+    {
+    public:
+        const std::string rootname;
+        const std::vector<SymbolicOffset> offsets;
+
+        SymbolValue(const Type* vtype, SourcePos spos, std::string sv, std::vector<SymbolicOffset>& offsets) : Value(ValueKind::SymbolicValueKind, vtype, spos), rootname(rootname), offsets(offsets) { ; }
+        virtual ~SymbolValue() = default;
+        
+        virtual std::u8string toString() const override
+        {
+            auto sroot = std::u8string(this->vtype->tkey.cbegin(), this->vtype->tkey.cend());
+            return std::accumulate(this->offsets.cbegin(), this->offsets.cend(), std::move(sroot), [](std::u8string&& a, const SymbolicOffset& v) { 
+                return std::move(a) + v.toString(); 
+            });
         }
     };
 }

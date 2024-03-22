@@ -29,6 +29,7 @@ BSQON_AST_NODE_DEFINE_1(BracketValue, struct BSQON_AST_LIST_OF_VALUES*, values)
 BSQON_AST_NODE_DEFINE_1(BraceValue, struct BSQON_AST_NLIST_OF_VALUES*, entries)
 BSQON_AST_NODE_DEFINE_3(TypedValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, type, bool, istagged)
 BSQON_AST_NODE_DEFINE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const char*, consname)
+BSQON_AST_NODE_DEFINE_1(EnvAccessValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DEFINE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)
 BSQON_AST_NODE_DEFINE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*, vtype, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, exp)
@@ -105,6 +106,7 @@ const char* BSQON_AST_getTagName(const struct BSQON_AST_Node* node)
         case BSQON_AST_TAG_SomethingConsValue: return "SomethingConsValue";
         case BSQON_AST_TAG_OkConsValue: return "OkConsValue";
         case BSQON_AST_TAG_ErrConsValue: return "ErrConsValue";
+        case BSQON_AST_TAG_EnvAccessValue: return "EnvAccessValue";
         case BSQON_AST_TAG_LetInValue: return "LetInValue";
         case BSQON_AST_TAG_AccessNameValue: return "AccessNameValue";
         case BSQON_AST_TAG_AccessIndexValue: return "AccessIndexValue";
@@ -323,6 +325,11 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         printf("%s(", nn->consname);
         BSQON_AST_print(nn->value);
         printf(")");
+        break;
+    }
+    case BSQON_AST_TAG_EnvAccessValue: {
+        const struct BSQON_AST_NODE(EnvAccessValue)* nn = BSQON_AST_NODE_AS(EnvAccessValue, node);
+        printf("env[%s]", nn->data->bytes);
         break;
     }
     case BSQON_AST_TAG_LetInValue: {

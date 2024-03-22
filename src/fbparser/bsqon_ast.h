@@ -76,6 +76,8 @@ enum BSQON_AST_TAG
     BSQON_AST_TAG_OkConsValue,
     BSQON_AST_TAG_ErrConsValue,
 
+    BSQON_AST_TAG_EnvAccessValue,
+
     BSQON_AST_TAG_LetInValue,
     BSQON_AST_TAG_AccessNameValue,
     BSQON_AST_TAG_AccessIndexValue,
@@ -154,6 +156,7 @@ BSQON_AST_NODE_DECLARE_1(BracketValue, struct BSQON_AST_LIST_OF_VALUES*, values)
 BSQON_AST_NODE_DECLARE_1(BraceValue, struct BSQON_AST_NLIST_OF_VALUES*, entries)
 BSQON_AST_NODE_DECLARE_3(TypedValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, type, bool, istagged)
 BSQON_AST_NODE_DECLARE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const char*, consname)
+BSQON_AST_NODE_DECLARE_1(EnvAccessValue, struct ByteString*, data)
 
 BSQON_AST_NODE_DECLARE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)
 BSQON_AST_NODE_DECLARE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*, vtype, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, exp)

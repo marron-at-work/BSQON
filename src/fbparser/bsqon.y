@@ -132,7 +132,7 @@ int errorcount = 0;
 %type <bsqon_named_type_list_entry> bsqonnametypel_entry
 %type <bsqon_named_type_list> bsqonnametypel
 
-%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonref bsqonidx bsqonpath bsqontypeliteral bsqonterminal bsqon_mapentry
+%type <bsqon_value_node> bsqonl_entry bsqon_braceval bsqonliteral bsqonunspecvar bsqonidentifier bsqonscopedidentifier bsqonstringof bsqonref bsqonidx bsqonpath bsqontypeliteral bsqonterminal bsqonenvaccess bsqon_mapentry
 %type <bsqon_value_node> bsqonbracketvalue bsqonbracevalue bsqonbracketbracevalue bsqontypedvalue bsqonstructvalue bsqonspecialcons bsqonletexp bsqonaccess bsqonval bsqonroot
 %type <bsqon_value_list> bsqonvall
 
@@ -274,6 +274,10 @@ bsqontypeliteral:
    bsqonliteral SYM_UNDERSCORE bsqonnominaltype { $$ = BSQON_AST_NODE_CONS(TypedLiteralValue, BSQON_AST_TAG_TypedLiteralValue, MK_SPOS_R(@1, @3), $1, $3); }
 ;
 
+bsqonenvaccess: 
+   KW_ENV '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(, MK_SPOS_R(@1, @4), BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@3), "$env"), $3); }
+;
+
 bsqonterminal: 
    bsqonliteral | bsqonunspecvar | bsqonidentifier | bsqonscopedidentifier | bsqonstringof | bsqonpath | bsqontypeliteral { $$ = $1; }
 ;
@@ -380,9 +384,21 @@ bsqonaccess:
    | bsqonref '[' bsqonidx SYM_COLON bsqonidx ']' { $$ = BSQON_AST_NODE_CONS(StringSliceValue, BSQON_AST_TAG_StringSliceValue, MK_SPOS_R(@1, @6), $1, $3, $5); }
 ;
 
+bsqoncomponent:
+   bsqonval
+   | envlist bsqonval
+   | SYM_QUESTION bsqontype bsqonval
+   | SYM_QUESTION bsqontype envlist bsqonval
+   | TOKEN_SHEBANG_LINE bsqonval
+   | TOKEN_SHEBANG_LINE envlist bsqonval
+   | TOKEN_SHEBANG_LINE SYM_QUESTION bsqontype bsqonval
+   | TOKEN_SHEBANG_LINE SYM_QUESTION bsqontype envlist bsqonval
+;
+
 bsqonroot: 
    bsqonval { yybsqonval = $1; $$ = $1; }
    | error {yybsqonval = BSQON_AST_ERROR(MK_SPOS_S(@1)); $$ = BSQON_AST_ERROR(MK_SPOS_S(@1)); }
+;
 %%
 
 extern FILE* yyin;
