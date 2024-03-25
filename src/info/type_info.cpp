@@ -103,11 +103,19 @@ namespace bsqon
         std::string ttag = j["tag"].get<std::string>();
         TypeTag tt = convertTagNameToEnum(ttag);
 
+        bool isrecursive = j.contains("isrecursive") && j["isrecursive"].is_boolean() && j["isrecursive"].get<bool>();
+        std::optional<SensitiveAnnotation> sannotation = std::nullopt;
+        if(j.contains("sannotation") && !j["sannotation"].is_null()) {
+            std::vector<std::pair<TypeKey, std::string>> annotations;
+
+            xxxx;
+        }
+
         switch(tt) {
             case TypeTag::TYPE_TUPLE: {
                 std::vector<TypeKey> entries;
                 std::transform(j["entries"].begin(), j["entries"].end(), std::back_inserter(entries), [](const json& jv) { return jv.get<TypeKey>(); });
-                return new TupleType(entries);
+                return new TupleType(isrecursive, sannotation, entries);
             }
             case TypeTag::TYPE_RECORD: {
                 std::vector<RecordTypeEntry> entries;

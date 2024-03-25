@@ -65,6 +65,7 @@ namespace bsqon
 
         std::vector<ParseError> errors;
 
+        std::map<std::string, Value*> envbinds;
         std::map<std::string, Value*> vbinds;
 
         std::map<std::string, const brex::RegexOpt*> namedRegexes;
@@ -271,14 +272,39 @@ namespace bsqon
         Value* parseAccessName(const Type* t, const BSQON_AST_Node* node);
         Value* parseAccessKey(const Type* t, const BSQON_AST_Node* node);
 
-        Value* parseEnvAccess(const Type* t, const BSQON_AST_Node* node)
+        Value* parseUnspecIdentifierValue(const Type* t, const BSQON_AST_Node* node);
+        Value* parseEnvAccess(const Type* t, const BSQON_AST_Node* node);
+
+        Value* parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok=false);
+
+        BsqonDecl* parseBSQON(std::string asmpath, const Type* t, const BSQON_AST_Node* node)
+        {
+            if(node->tag != BSQON_AST_TAG_BsqonDeclBody) {
+                this->addError("Expected a BSQON declaration", convertSrcPos(node->pos));
+                return nullptr;
+            }
+
+            auto dnoa = BSQON_AST_NODE_AS(BsqonDeclBody, node);
+            auto vv = this->parseValue(t, dnoa->value);
+
+            return new BsqonDecl(asmpath, t, vv);
+        }
+
+        void tryLoadEnvValue(std::string ename, const Type* t, const BSQON_AST_Node* node)
+        {
+            auto vv = this->parseValue(t, node);
+            if(vv != nullptr)
+            {
+                this->envbinds[ename] = vv;
+            }
+        }
+
+        static std::pair<std::optional<std::string>, std::optional<std::string>> getAssemblyAndType(const BSQON_AST_Node* node)
         {
             xxxx;
         }
 
-        Value* parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok=false);
-
-        BsqonDecl* parseBSQON(const BSQON_AST_Node* node)
+        static std::map<std::string, std::string> getEnvironmentBinds(const BSQON_AST_Node* node)
         {
             xxxx;
         }

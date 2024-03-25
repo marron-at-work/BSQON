@@ -1669,7 +1669,7 @@ namespace bsqon
         const std::string rootname;
         const std::vector<SymbolicOffset> offsets;
 
-        SymbolValue(const Type* vtype, SourcePos spos, std::string rootname, std::vector<SymbolicOffset>& offsets) : Value(ValueKind::SymbolicValueKind, vtype, spos), rootname(rootname), offsets(offsets) { ; }
+        SymbolValue(const Type* vtype, SourcePos spos, std::string rootname, std::vector<SymbolicOffset> offsets) : Value(ValueKind::SymbolicValueKind, vtype, spos), rootname(rootname), offsets(offsets) { ; }
         virtual ~SymbolValue() = default;
         
         virtual std::u8string toString() const override
@@ -1678,6 +1678,23 @@ namespace bsqon
             return std::accumulate(this->offsets.cbegin(), this->offsets.cend(), std::move(sroot), [](std::u8string&& a, const SymbolicOffset& v) { 
                 return std::move(a) + v.toString(); 
             });
+        }
+    };
+
+    class BsqonDecl
+    {
+    public:
+        const std::string assemblypath;
+        const Type* oftype;
+        const Value* value;
+
+        BsqonDecl(std::string assemblypath, const Type* oftype, const Value* value) : assemblypath(assemblypath), oftype(oftype), value(value) { ; }
+        virtual ~BsqonDecl() = default;
+
+        std::u8string toString() const
+        {
+            auto dd = u8"#!" + std::u8string(this->assemblypath.cbegin(), this->assemblypath.cend()) + u8"?" + std::u8string(this->oftype->tkey.cbegin(), this->oftype->tkey.cend());
+            return dd + u8"\n\n" + this->value->toString();
         }
     };
 }

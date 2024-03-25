@@ -278,7 +278,8 @@ bsqontypeliteral:
 ;
 
 bsqonenvaccess: 
-   KW_ENV '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(EnvAccessValue, BSQON_AST_TAG_EnvAccessValue, MK_SPOS_R(@1, @4), $3); }
+   KW_ENV '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(EnvAccessValue, BSQON_AST_TAG_EnvAccessValue, MK_SPOS_R(@1, @4), $3, NULL); }
+   | KW_ENV '<' bsqontype '>' '[' TOKEN_ASCII_STRING ']' { $$ = BSQON_AST_NODE_CONS(EnvAccessValue, BSQON_AST_TAG_EnvAccessValue, MK_SPOS_R(@1, @7), $6, $3); }
 ;
 
 bsqonterminal: 
@@ -396,10 +397,10 @@ bsqonenvlist:
 ;
 
 bsqoncomponent:
-   bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_S(@1), NULL, NULL, $1); }
-   | bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @2), NULL, $1, $2); }
-   | TOKEN_SHEBANG_LINE bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @2), $1, NULL, $2); }
-   | TOKEN_SHEBANG_LINE bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDecl, BSQON_AST_TAG_BsqonDecl, MK_SPOS_R(@1, @3), $1, $2, $3); }
+   bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDeclBody, BSQON_AST_TAG_BsqonDeclBody, MK_SPOS_S(@1), NULL, NULL, $1); }
+   | bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDeclBody, BSQON_AST_TAG_BsqonDeclBody, MK_SPOS_R(@1, @2), NULL, $1, $2); }
+   | TOKEN_SHEBANG_LINE bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDeclBody, BSQON_AST_TAG_BsqonDeclBody, MK_SPOS_R(@1, @2), $1, NULL, $2); }
+   | TOKEN_SHEBANG_LINE bsqonenvlist bsqonval { $$ = BSQON_AST_NODE_CONS(BsqonDeclBody, BSQON_AST_TAG_BsqonDeclBody, MK_SPOS_R(@1, @3), $1, $2, $3); }
 ;
 
 bsqonroot: 

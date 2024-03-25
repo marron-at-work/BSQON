@@ -42,13 +42,24 @@ namespace bsqon
         TYPE_UNION
     };
 
+    class SensitiveAnnotation 
+    {
+    public:
+        std::vector<std::pair<TypeKey, std::string>> annotations;
+
+        SensitiveAnnotation(std::vector<std::pair<TypeKey, std::string>> cinfo) : annotations(annotations) { ; }
+    };
+
     class Type
     {
     public:
         TypeTag tag;
         TypeKey tkey;
 
-        Type(TypeTag tag, TypeKey tkey) : tag(tag), tkey(tkey) { ; }
+        bool isrecursive;
+        std::optional<SensitiveAnnotation> sannotation;
+
+        Type(TypeTag tag, TypeKey tkey, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : tag(tag), tkey(tkey), isrecursive(isrecursive), sannotation(sannotation) { ; }
         virtual ~Type() = default;
 
         static const int64_t MIN_SAFE_INT = -9223372036854775807ll;
@@ -80,7 +91,7 @@ namespace bsqon
     class UnresolvedType : public Type
     {
     public:
-        UnresolvedType() : Type(TypeTag::TYPE_UNRESOLVED, "[UNRESOLVED]") { ; }
+        UnresolvedType() : Type(TypeTag::TYPE_UNRESOLVED, "[UNRESOLVED]", false, std::nullopt) { ; }
         virtual ~UnresolvedType() = default;
 
         static UnresolvedType* singleton;
@@ -91,7 +102,7 @@ namespace bsqon
     public:
         std::vector<TypeKey> entries;
 
-        TupleType(std::vector<TypeKey> entries) : Type(TypeTag::TYPE_TUPLE, "[" + std::accumulate(entries.begin(), entries.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + ", ") + b; }) + "]"), entries(entries) { ; }
+        TupleType(bool isrecursive, std::optional<SensitiveAnnotation> sannotation, std::vector<TypeKey> entries) : Type(TypeTag::TYPE_TUPLE, "[" + std::accumulate(entries.begin(), entries.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + ", ") + b; }) + "]", isrecursive, sannotation), entries(entries) { ; }
         virtual ~TupleType() = default;
     };
 
@@ -109,14 +120,14 @@ namespace bsqon
     public:
         std::vector<RecordTypeEntry> entries;
 
-        RecordType(std::vector<RecordTypeEntry> entries) : Type(TypeTag::TYPE_RECORD, "{" + std::accumulate(entries.begin(), entries.end(), std::string(), [](std::string&& a, RecordTypeEntry& b) { return (a == "" ? "" : std::move(a) + ", ") + b.pname + ": " + b.ptype; }) + "}"), entries(entries) { ; }
+        RecordType(bool isrecursive, std::optional<SensitiveAnnotation> sannotation, std::vector<RecordTypeEntry> entries) : Type(TypeTag::TYPE_RECORD, "{" + std::accumulate(entries.begin(), entries.end(), std::string(), [](std::string&& a, RecordTypeEntry& b) { return (a == "" ? "" : std::move(a) + ", ") + b.pname + ": " + b.ptype; }) + "}", isrecursive, sannotation), entries(entries) { ; }
         virtual ~RecordType() = default;
     };
 
     class EntityType : public Type
     {
     public:
-        EntityType(TypeTag tag, TypeKey tkey) : Type(tag, tkey) { ; }
+        EntityType(TypeTag tag, TypeKey tkey, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : Type(tag, tkey, isrecursive, sannotation) { ; }
         virtual ~EntityType() = default;
     };
 
@@ -125,7 +136,10 @@ namespace bsqon
     public:
         std::vector<TypeKey> subtypes;
 
-        ConceptType(TypeTag tag, TypeKey tkey, std::vector<TypeKey> subtypes) : Type(tag, tkey), subtypes(subtypes)
+        bool isrecursive;
+        std::optional<SensitiveAnnotation> sannotation;
+
+        ConceptType(TypeTag tag, TypeKey tkey, std::vector<TypeKey> subtypes, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : Type(tag, tkey, isrecursive, sannotation), subtypes(subtypes)
         {
             std::sort(this->subtypes.begin(), this->subtypes.end());
         }
@@ -144,7 +158,9 @@ namespace bsqon
         std::string fname;
         TypeKey ftype;
 
-        EntityTypeFieldEntry(std::string fname, TypeKey ftype) : fname(fname), ftype(ftype) { ; }
+        std::optional<SensitiveAnnotation> sannotation;
+
+        EntityTypeFieldEntry(std::string fname, TypeKey ftype, std::optional<SensitiveAnnotation> sannotation) : fname(fname), ftype(ftype), sannotation(sannotation) { ; }
     };
 
     class StdEntityType : public EntityType
@@ -153,21 +169,21 @@ namespace bsqon
         std::vector<EntityTypeFieldEntry> fields;
         bool hasvalidations;
 
-        StdEntityType(TypeKey tkey, std::vector<EntityTypeFieldEntry> fields, bool hasvalidations) : EntityType(TypeTag::TYPE_STD_ENTITY, tkey), fields(fields), hasvalidations(hasvalidations) { ; }
+        StdEntityType(TypeKey tkey, bool isrecursive, SensitiveAnnotation sannotation, std::vector<EntityTypeFieldEntry> fields, bool hasvalidations) : EntityType(TypeTag::TYPE_STD_ENTITY, tkey, isrecursive, sannotation), fields(fields), hasvalidations(hasvalidations) { ; }
         virtual ~StdEntityType() = default;
     };
 
     class StdConceptType : public ConceptType
     {
     public:
-        StdConceptType(TypeKey tkey, std::vector<TypeKey> subtypes) : ConceptType(TypeTag::TYPE_STD_CONCEPT, tkey, subtypes) { ; }
+        StdConceptType(TypeKey tkey, std::vector<TypeKey> subtypes, bool isrecursive, SensitiveAnnotation sannotation) : ConceptType(TypeTag::TYPE_STD_CONCEPT, tkey, subtypes, isrecursive, sannotation) { ; }
         virtual ~StdConceptType() = default;
     };
 
     class PrimitiveType : public EntityType
     {
     public:
-        PrimitiveType(TypeKey tkey) : EntityType(TypeTag::TYPE_PRIMITIVE, tkey) { ; }
+        PrimitiveType(TypeKey tkey) : EntityType(TypeTag::TYPE_PRIMITIVE, tkey, false, std::nullopt) { ; }
         virtual ~PrimitiveType() = default;
     };
 
@@ -176,7 +192,7 @@ namespace bsqon
     public:
         std::vector<std::string> variants;
 
-        EnumType(TypeKey tkey, std::vector<std::string> variants) : EntityType(TypeTag::TYPE_ENUM, tkey), variants(variants) { ; }
+        EnumType(TypeKey tkey, std::vector<std::string> variants) : EntityType(TypeTag::TYPE_ENUM, tkey, false, {}), variants(variants) { ; }
         virtual ~EnumType() = default;
     };
 
@@ -190,21 +206,21 @@ namespace bsqon
         std::optional<TypeKey> optPathOfValidator;
         bool hasvalidations;
 
-        TypedeclType(TypeKey tkey, TypeKey basetype, TypeKey oftype, std::optional<TypeKey> optStringOfValidator, std::optional<TypeKey> optPathOfValidator, bool hasvalidations) : EntityType(TypeTag::TYPE_TYPE_DECL, tkey), basetype(basetype), oftype(oftype), optStringOfValidator(optStringOfValidator), optPathOfValidator(optPathOfValidator), hasvalidations(hasvalidations) { ; }
+        TypedeclType(TypeKey tkey, std::optional<SensitiveAnnotation>, TypeKey basetype, TypeKey oftype, std::optional<TypeKey> optStringOfValidator, std::optional<TypeKey> optPathOfValidator, bool hasvalidations) : EntityType(TypeTag::TYPE_TYPE_DECL, tkey, false, sannotation), basetype(basetype), oftype(oftype), optStringOfValidator(optStringOfValidator), optPathOfValidator(optPathOfValidator), hasvalidations(hasvalidations) { ; }
         virtual ~TypedeclType() = default;
     };
 
     class ValidatorREType : public EntityType
     {
     public:
-        ValidatorREType(TypeKey tkey) : EntityType(TypeTag::TYPE_VALIDATOR_RE, tkey) { ; }
+        ValidatorREType(TypeKey tkey) : EntityType(TypeTag::TYPE_VALIDATOR_RE, tkey, false, std::nullopt) { ; }
         virtual ~ValidatorREType() = default;
     };
 
     class ValidatorPthType : public EntityType
     {
     public: 
-        ValidatorPthType(TypeKey tkey) : EntityType(TypeTag::TYPE_VALIDATOR_PTH, tkey) { ; }
+        ValidatorPthType(TypeKey tkey) : EntityType(TypeTag::TYPE_VALIDATOR_PTH, tkey, false, std::nullopt) { ; }
         virtual ~ValidatorPthType() = default;
     };
 
@@ -213,7 +229,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        StringOfType(TypeKey oftype) : EntityType(TypeTag::TYPE_STRING_OF, "StringOf<" + oftype + ">"), oftype(oftype) { ; }
+        StringOfType(TypeKey oftype) : EntityType(TypeTag::TYPE_STRING_OF, "StringOf<" + oftype + ">", false, std::nullopt), oftype(oftype) { ; }
         virtual ~StringOfType() = default;
     };
 
@@ -222,7 +238,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        ASCIIStringOfType(TypeKey oftype) : EntityType(TypeTag::TYPE_ASCII_STRING_OF, "ASCIIStringOf<" + oftype + ">"), oftype(oftype) { ; }
+        ASCIIStringOfType(TypeKey oftype) : EntityType(TypeTag::TYPE_ASCII_STRING_OF, "ASCIIStringOf<" + oftype + ">", false, std::nullopt), oftype(oftype) { ; }
         virtual ~ASCIIStringOfType() = default;
     };
 
@@ -231,7 +247,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        SomethingType(TypeKey oftype) : EntityType(TypeTag::TYPE_SOMETHING, "Something<" + oftype + ">"), oftype(oftype) { ; }
+        SomethingType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_SOMETHING, "Something<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~SomethingType() = default;
     };
 
@@ -240,7 +256,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        OptionType(TypeKey oftype) : ConceptType(TypeTag::TYPE_OPTION, "Option<" + oftype + ">", { "Nothing", "Something<" + oftype + ">" }), oftype(oftype) { ; }
+        OptionType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : ConceptType(TypeTag::TYPE_OPTION, "Option<" + oftype + ">", { "Nothing", "Something<" + oftype + ">" }, isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~OptionType() = default;
     };
 
@@ -250,7 +266,7 @@ namespace bsqon
         TypeKey ttype;
         TypeKey etype;
 
-        OkType(TypeKey ttype, TypeKey etype) : EntityType(TypeTag::TYPE_OK, "Result<" + ttype + ", " + etype + ">::Ok"), ttype(ttype), etype(etype) { ; }
+        OkType(TypeKey ttype, TypeKey etype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_OK, "Result<" + ttype + ", " + etype + ">::Ok", isrecursive, sannotation), ttype(ttype), etype(etype) { ; }
         virtual ~OkType() = default;
     };
 
@@ -260,7 +276,7 @@ namespace bsqon
         TypeKey ttype;
         TypeKey etype;
 
-        ErrorType(TypeKey ttype, TypeKey etype) : EntityType(TypeTag::TYPE_ERROR, "Result<" + ttype + ", " + etype + ">::Err"), ttype(ttype), etype(etype) { ; }
+        ErrorType(TypeKey ttype, TypeKey etype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_ERROR, "Result<" + ttype + ", " + etype + ">::Err", isrecursive, sannotation), ttype(ttype), etype(etype) { ; }
         virtual ~ErrorType() = default;
     };
 
@@ -270,7 +286,7 @@ namespace bsqon
         TypeKey ttype;
         TypeKey etype;
 
-        ResultType(TypeKey ttype, TypeKey etype) : ConceptType(TypeTag::TYPE_RESULT, "Result<" + ttype + ", " + etype + ">", { "Result<" + ttype + ", " + etype + ">::Ok", "Result<" + ttype + ", " + etype + ">::Err" }), ttype(ttype), etype(etype) { ; }
+        ResultType(TypeKey ttype, TypeKey etype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : ConceptType(TypeTag::TYPE_RESULT, "Result<" + ttype + ", " + etype + ">", { "Result<" + ttype + ", " + etype + ">::Ok", "Result<" + ttype + ", " + etype + ">::Err" }, isrecursive, sannotation), ttype(ttype), etype(etype) { ; }
         virtual ~ResultType() = default;
     };
 
@@ -279,7 +295,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        PathType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH, "Path<" + oftype + ">"), oftype(oftype) { ; }
+        PathType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH, "Path<" + oftype + ">", false, std::nullopt), oftype(oftype) { ; }
         virtual ~PathType() = default;
     };
 
@@ -288,7 +304,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        PathFragmentType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH_FRAGMENT, "PathFragment<" + oftype + ">"), oftype(oftype) { ; }
+        PathFragmentType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH_FRAGMENT, "PathFragment<" + oftype + ">", false, std::nullopt), oftype(oftype) { ; }
         virtual ~PathFragmentType() = default;
     };
 
@@ -297,7 +313,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        PathGlobType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH_GLOB, "PathGlob<" + oftype + ">"), oftype(oftype) { ; }
+        PathGlobType(TypeKey oftype) : EntityType(TypeTag::TYPE_PATH_GLOB, "PathGlob<" + oftype + ">", false, std::nullopt), oftype(oftype) { ; }
         virtual ~PathGlobType() = default;
     };
 
@@ -306,7 +322,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        ListType(TypeKey oftype) : EntityType(TypeTag::TYPE_LIST, "List<" + oftype + ">"), oftype(oftype) { ; }
+        ListType(TypeKey oftypebool, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_LIST, "List<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~ListType() = default;
     };
 
@@ -315,7 +331,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        StackType(TypeKey oftype) : EntityType(TypeTag::TYPE_STACK, "Stack<" + oftype + ">"), oftype(oftype) { ; }
+        StackType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_STACK, "Stack<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~StackType() = default;
     };
 
@@ -324,7 +340,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        QueueType(TypeKey oftype) : EntityType(TypeTag::TYPE_QUEUE, "Queue<" + oftype + ">"), oftype(oftype) { ; }
+        QueueType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_QUEUE, "Queue<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~QueueType() = default;
     };
 
@@ -333,7 +349,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        SetType(TypeKey oftype) : EntityType(TypeTag::TYPE_SET, "Set<" + oftype + ">"), oftype(oftype) { ; }
+        SetType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_SET, "Set<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~SetType() = default;
     };
 
@@ -343,7 +359,7 @@ namespace bsqon
         TypeKey ktype;
         TypeKey vtype;
 
-        MapEntryType(TypeKey ktype, TypeKey vtype) : EntityType(TypeTag::TYPE_MAP_ENTRY, "MapEntry<" + ktype + ", " + vtype + ">"), ktype(ktype), vtype(vtype) { ; }
+        MapEntryType(TypeKey ktype, TypeKey vtype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_MAP_ENTRY, "MapEntry<" + ktype + ", " + vtype + ">", isrecursive, sannotation), ktype(ktype), vtype(vtype) { ; }
         virtual ~MapEntryType() = default;
     };
 
@@ -353,7 +369,7 @@ namespace bsqon
         TypeKey ktype;
         TypeKey vtype;
 
-        MapType(TypeKey ktype, TypeKey vtype) : EntityType(TypeTag::TYPE_MAP, "Map<" + ktype + ", " + vtype + ">"), ktype(ktype), vtype(vtype) { ; }
+        MapType(TypeKey ktype, TypeKey vtype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_MAP, "Map<" + ktype + ", " + vtype + ">", isrecursive, sannotation), ktype(ktype), vtype(vtype) { ; }
         virtual ~MapType() = default;
     };
 
@@ -362,7 +378,7 @@ namespace bsqon
     public:
         std::vector<TypeKey> concepts;
 
-        ConceptSetType(std::vector<TypeKey> concepts) : Type(TypeTag::TYPE_CONCEPT_SET, std::accumulate(concepts.begin(), concepts.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + "&") + b; })), concepts(concepts) { ; }
+        ConceptSetType(bool isrecursive, std::optional<SensitiveAnnotation> sannotation, std::vector<TypeKey> concepts) : Type(TypeTag::TYPE_CONCEPT_SET, std::accumulate(concepts.begin(), concepts.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + "&") + b; }), isrecursive, sannotation), concepts(concepts) { ; }
         virtual ~ConceptSetType() = default;
     };
 
@@ -371,7 +387,7 @@ namespace bsqon
     public:
         std::vector<TypeKey> types;
 
-        UnionType(std::vector<TypeKey> types) : Type(TypeTag::TYPE_UNION, std::accumulate(types.begin(), types.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + " | ") + b; })), types(types) { ; }
+        UnionType(bool isrecursive, std::optional<SensitiveAnnotation> sannotation, std::vector<TypeKey> types) : Type(TypeTag::TYPE_UNION, std::accumulate(types.begin(), types.end(), std::string(), [](std::string&& a, TypeKey& b) { return (a == "" ? "" : std::move(a) + " | ") + b; }), isrecursive, sannotation), types(types) { ; }
         virtual ~UnionType() = default;
     };
 

@@ -29,7 +29,7 @@ BSQON_AST_NODE_DEFINE_1(BracketValue, struct BSQON_AST_LIST_OF_VALUES*, values)
 BSQON_AST_NODE_DEFINE_1(BraceValue, struct BSQON_AST_NLIST_OF_VALUES*, entries)
 BSQON_AST_NODE_DEFINE_3(TypedValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, type, bool, istagged)
 BSQON_AST_NODE_DEFINE_2(SpecialConsValue, struct BSQON_AST_Node*, value, const char*, consname)
-BSQON_AST_NODE_DEFINE_1(EnvAccessValue, struct ByteString*, data)
+BSQON_AST_NODE_DEFINE_2(EnvAccessValue, struct ByteString*, data, struct BSQON_AST_Node*, type)
 
 BSQON_AST_NODE_DEFINE_2(ScopedNameValue, struct BSQON_AST_Node*, root, const char*, identifier)
 BSQON_AST_NODE_DEFINE_4(LetInValue, const char*, vname, struct BSQON_AST_Node*, vtype, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, exp)
@@ -38,7 +38,7 @@ BSQON_AST_NODE_DEFINE_2(AccessNameValue, struct BSQON_AST_Node*, value, const ch
 BSQON_AST_NODE_DEFINE_2(AccessIndexValue, struct BSQON_AST_Node*, value, const char*, idx)
 BSQON_AST_NODE_DEFINE_2(AccessKeyValue, struct BSQON_AST_Node*, value, struct BSQON_AST_Node*, kk)
 
-BSQON_AST_NODE_DEFINE_3(BsqonDecl, const char*, shebangmeta, struct BSQON_AST_NLIST_OF_TYPES*, envtypes, struct BSQON_AST_Node*, value)
+BSQON_AST_NODE_DEFINE_3(BsqonDeclBody, const char*, shebangmeta, struct BSQON_AST_NLIST_OF_TYPES*, envtypes, struct BSQON_AST_Node*, value)
 
 enum BSQON_AST_TAG BSQON_AST_getTag(const struct BSQON_AST_Node* node)
 {
@@ -331,7 +331,14 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
     }
     case BSQON_AST_TAG_EnvAccessValue: {
         const struct BSQON_AST_NODE(EnvAccessValue)* nn = BSQON_AST_NODE_AS(EnvAccessValue, node);
-        printf("env[%s]", nn->data->bytes);
+        printf("env");
+        if(nn->type != NULL) {
+            printf("<");
+            BSQON_AST_print(nn->type);
+            printf(">");
+        }
+
+        printf("[%s]", nn->data->bytes);
         break;
     }
     case BSQON_AST_TAG_LetInValue: {
@@ -371,8 +378,8 @@ void BSQON_AST_print(const struct BSQON_AST_Node* node)
         printf("::%s", nn->identifier);
         break;
     }
-    case BSQON_AST_TAG_BsqonDecl: {
-        const struct BSQON_AST_NODE(BsqonDecl)* nn = BSQON_AST_NODE_AS(BsqonDecl, node);
+    case BSQON_AST_TAG_BsqonDeclBody: {
+        const struct BSQON_AST_NODE(BsqonDeclBody)* nn = BSQON_AST_NODE_AS(BsqonDeclBody, node);
         if(nn->shebangmeta != NULL) {
             printf("#!%s", nn->shebangmeta);
         }

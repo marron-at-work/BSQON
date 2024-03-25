@@ -2977,6 +2977,11 @@ namespace bsqon
         this->isValidNat(aidxstr, aindex);
         
         Value* lvalue = this->parseValue(atype, innode->value);
+        if(lvalue->kind != ValueKind::TupleValueKind) {
+            this->addError("Expected a Tuple value (non-symbolic)", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
         auto avalue = static_cast<TupleValue*>(lvalue);
 
         if(aindex < 0 || aindex >= (int64_t)avalue->values.size()) {
@@ -2999,8 +3004,6 @@ namespace bsqon
             this->addError("Expected access index value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
-
-xxxx;
         auto nnode = BSQON_AST_NODE_AS(AccessNameValue, node);
 
         auto atype = this->resolveAndCheckType("Any", Parser::convertSrcPos(node->pos));
@@ -3008,7 +3011,7 @@ xxxx;
         
         Value* lvalue = this->parseValue(atype, nnode->value);
         if(lvalue->kind != ValueKind::RecordValueKind && lvalue->kind != ValueKind::EntityValueKind) {
-            this->addError("Expected record or entity value", Parser::convertSrcPos(node->pos));
+            this->addError("Expected record or entity value (non-symbolic)", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
@@ -3059,7 +3062,7 @@ xxxx;
         Value* lvalue = this->parseValue(atype, knode->value);
 
         if(lvalue->kind != ValueKind::ListValueKind && lvalue->kind != ValueKind::MapValueKind) {
-            this->addError("Expected list or map value", Parser::convertSrcPos(node->pos));
+            this->addError("Expected list or map value (non-symbolic)", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
@@ -3103,6 +3106,49 @@ xxxx;
         }
     }
 
+    Value* Parser::parseEnvAccess(const Type* t, const BSQON_AST_Node* node) 
+    {
+        if(node->tag != BSQON_AST_TAG_EnvAccessValue) {
+            this->addError("Expected env access value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto enode = BSQON_AST_NODE_AS(EnvAccessValue, node);
+        auto ename = std::string(enode->data->bytes, enode->data->bytes + enode->data->len);
+        auto dtype = enode->type != NULL ? this->parseType(enode->type) : t;
+        
+        if(!this->envbinds.contains(ename)) {
+            this->addError("Unknown env binding " + ename, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+        
+        auto evalue = this->envbinds[ename];
+        if(!this->assembly->checkConcreteSubtype(evalue->vtype, dtype)) {
+            this->addError("Expected result of type " + dtype->tkey + " but got " + evalue->vtype->tkey, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        if(!this->assembly->checkConcreteSubtype(evalue->vtype, t)) {
+            this->addError("Expected result of type " + t->tkey + " but got " + evalue->vtype->tkey, Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        return evalue;
+    }
+
+    Value* Parser::parseUnspecIdentifierValue(const Type* t, const BSQON_AST_Node* node)
+    {
+        if(node->tag != BSQON_AST_TAG_UnspecIdentifierValue) {
+            this->addError("Expected unspec identifier value", Parser::convertSrcPos(node->pos));
+            return new ErrorValue(t, Parser::convertSrcPos(node->pos));
+        }
+
+        auto unode = BSQON_AST_NODE_AS(NameValue, node);
+        auto uname = std::string(unode->data).substr(2);
+
+        return new SymbolValue(t, Parser::convertSrcPos(node->pos), uname, {});
+    }
+
     Value* Parser::parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok)
     {
         if(node->tag == BSQON_AST_TAG_IdentifierValue) {
@@ -3112,10 +3158,10 @@ xxxx;
             return this->parseScopedName(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_UnspecIdentifierValue) {
-            xxxx;
+            return this->parseUnspecIdentifierValue(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_EnvAccessValue) {
-            xxxx;
+            return this->parseEnvAccess(t, node);
         }
         else if(node->tag == BSQON_AST_TAG_AccessIndexValue) {
             return this->parseAccessIndex(t, node);
