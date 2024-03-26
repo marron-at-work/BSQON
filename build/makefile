@@ -50,10 +50,23 @@ MAKEFLAGS += -j4
 
 all: bsqon
 
-bsqon: $(BSQON_HEADERS) $(BSQON_SOURCES) $(PARSER_OBJS) $(BSQON_OBJS)
+$(PCKG_DIR)bsqonlib.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_EXE)bsqonlib.a
+	@mkdir -p $(PCKG_DIR)
+	@mkdir -p $(PCKG_DIR)regex/
+	@mkdir -p $(PCKG_DIR)path/
+	cp $(OUT_EXE)brexlib.a $(PCKG_DIR)brexlib.a
+	cp $(COMMON_HEADERS) $(PCKG_DIR)
+	cp $(REGEX_HEADERS) $(PCKG_DIR)regex/
+	cp $(PATH_HEADERS) $(PCKG_DIR)path/
+
+bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(PARSER_OBJS) $(BSQON_OBJS) $(PARSER_DIR)bsqon_main.cpp
 	@mkdir -p $(BIN_DIR)
 	@echo "Building bsqon"
-# $(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(BSQON_SOURCES) $(PARSER_OBJS) -lfl -lgmp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(BSQON_OBJS) $(PARSER_OBJS) $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
+
+$(OUT_EXE)bsqonlib.a: $(BSQON_OBJS) $(PARSER_OBJS)
+	@mkdir -p $(OUT_EXE)
+	$(AR) $(ARFLAGS) $(OUT_EXE)bsqonlib.a $(BSQON_OBJS) $(PARSER_OBJS)
 
 $(OUT_OBJ)bsqon_parse.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(PARSER_DIR)bsqon_parse.cpp
 	@mkdir -p $(OUT_OBJ)

@@ -482,7 +482,7 @@ int main(int argc, char** argv)
    }
 }
 #else
-const struct BSQON_AST_Node* parse_from_stdin()
+const struct BSQON_AST_Node* BSQON_AST_parse_from_stdin()
 {
    yyin = stdin;
    filename = "<stdin>";
@@ -495,7 +495,7 @@ const struct BSQON_AST_Node* parse_from_stdin()
    }
 }
 
-const struct BSQON_AST_Node* parse_from_file(const char* file)
+const struct BSQON_AST_Node* BSQON_AST_parse_from_file(const char* file)
 {
    if((yyin = fopen(file, "r")) == NULL) {
       perror(file);
