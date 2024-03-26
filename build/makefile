@@ -9,6 +9,7 @@ PARSER_DIR=$(SRC_DIR)parser/
 
 OUT_EXE=$(BUILD_DIR)output/
 OUT_OBJ=$(BUILD_DIR)output/obj/
+PCKG_DIR=$(BUILD_DIR)bsqon/
 
 JSON_INCLUDES=-I $(BUILD_DIR)include/json/
 LIB_PATH=$(OUT_EXE)
@@ -61,9 +62,9 @@ $(PCKG_DIR)bsqonlib.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_E
 	cp $(BSQON_HEADERS) $(PCKG_DIR)info/
 	cp $(PARSER_HEADERS) $(PCKG_DIR)parser/
 
-$(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(PARSER_OBJS) $(BSQON_OBJS) $(PARSER_DIR)bsqon_main.cpp
+$(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(OUT_EXE)bsqonlib.a $(PARSER_DIR)bsqon_main.cpp
 	@mkdir -p $(BIN_DIR)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(BSQON_OBJS) $(PARSER_OBJS) $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(OUT_EXE)bsqonlib.a $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
 
 $(OUT_EXE)bsqonlib.a: $(BSQON_OBJS) $(PARSER_OBJS)
 	@mkdir -p $(OUT_EXE)
