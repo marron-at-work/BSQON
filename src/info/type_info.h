@@ -47,7 +47,7 @@ namespace bsqon
     public:
         std::vector<std::pair<TypeKey, std::string>> annotations;
 
-        SensitiveAnnotation(std::vector<std::pair<TypeKey, std::string>> cinfo) : annotations(annotations) { ; }
+        SensitiveAnnotation(std::vector<std::pair<TypeKey, std::string>> annotations) : annotations(annotations) { ; }
     };
 
     class Type
@@ -169,14 +169,14 @@ namespace bsqon
         std::vector<EntityTypeFieldEntry> fields;
         bool hasvalidations;
 
-        StdEntityType(TypeKey tkey, bool isrecursive, SensitiveAnnotation sannotation, std::vector<EntityTypeFieldEntry> fields, bool hasvalidations) : EntityType(TypeTag::TYPE_STD_ENTITY, tkey, isrecursive, sannotation), fields(fields), hasvalidations(hasvalidations) { ; }
+        StdEntityType(TypeKey tkey, bool isrecursive, std::optional<SensitiveAnnotation> sannotation, std::vector<EntityTypeFieldEntry> fields, bool hasvalidations) : EntityType(TypeTag::TYPE_STD_ENTITY, tkey, isrecursive, sannotation), fields(fields), hasvalidations(hasvalidations) { ; }
         virtual ~StdEntityType() = default;
     };
 
     class StdConceptType : public ConceptType
     {
     public:
-        StdConceptType(TypeKey tkey, std::vector<TypeKey> subtypes, bool isrecursive, SensitiveAnnotation sannotation) : ConceptType(TypeTag::TYPE_STD_CONCEPT, tkey, subtypes, isrecursive, sannotation) { ; }
+        StdConceptType(TypeKey tkey, std::vector<TypeKey> subtypes, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : ConceptType(TypeTag::TYPE_STD_CONCEPT, tkey, subtypes, isrecursive, sannotation) { ; }
         virtual ~StdConceptType() = default;
     };
 
@@ -322,7 +322,7 @@ namespace bsqon
     public:
         TypeKey oftype;
 
-        ListType(TypeKey oftypebool, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_LIST, "List<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
+        ListType(TypeKey oftype, bool isrecursive, std::optional<SensitiveAnnotation> sannotation) : EntityType(TypeTag::TYPE_LIST, "List<" + oftype + ">", isrecursive, sannotation), oftype(oftype) { ; }
         virtual ~ListType() = default;
     };
 

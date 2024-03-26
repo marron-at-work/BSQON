@@ -1653,12 +1653,19 @@ namespace bsqon
         {
             auto xstr = std::u8string(this->offset.cbegin(), this->offset.cend());
             switch(this->tag) {
-                case SymbolicOffsetTag::FieldOffset:
+                case SymbolicOffsetTag::FieldOffset: {
                     return u8"." + xstr;
-                case SymbolicOffsetTag::IndexOffset:
+                }
+                case SymbolicOffsetTag::IndexOffset: {
                     return u8"." + xstr;
-                case SymbolicOffsetTag::KeyOffset:
+                }
+                case SymbolicOffsetTag::KeyOffset: {
                     return u8"[" + xstr + u8"]";
+                }
+                default: {
+                    return u8"{BAD OFFSET}";
+                }
+                    
             }
         }
     };

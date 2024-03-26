@@ -290,23 +290,54 @@ namespace bsqon
             return new BsqonDecl(asmpath, t, vv);
         }
 
-        void tryLoadEnvValue(std::string ename, const Type* t, const BSQON_AST_Node* node)
+        void tryLoadEnvValue(std::string ename, std::map<std::string, const BSQON_AST_Node*>& envtypes, const BSQON_AST_Node* node)
         {
+            auto t = this->parseType(envtypes.at(ename));
             auto vv = this->parseValue(t, node);
-            if(vv != nullptr)
-            {
+
+            if(vv != nullptr) {
                 this->envbinds[ename] = vv;
             }
         }
 
-        static std::pair<std::optional<std::string>, std::optional<std::string>> getAssemblyAndType(const BSQON_AST_Node* node)
+        static std::map<std::string, const BSQON_AST_Node*> getEnvironmentBindKeys(const BSQON_AST_Node* node)
         {
-            xxxx;
+            std::map<std::string, const BSQON_AST_Node*> envkeys;
+
+            if(node->tag != BSQON_AST_TAG_BsqonDeclBody) {
+                return envkeys;
+            }
+
+            auto dnoa = BSQON_AST_NODE_AS(BsqonDeclBody, node);
+            struct BSQON_AST_NLIST_OF_TYPES* curr = dnoa->envtypes;
+            while(curr != nullptr) {
+                envkeys[std::string(curr->entry.name)] = curr->entry.value;
+            }
+
+            return envkeys;
         }
 
-        static std::map<std::string, std::string> getEnvironmentBinds(const BSQON_AST_Node* node)
+        static std::pair<std::optional<std::string>, std::optional<std::string>> getAssemblyAndType(const BSQON_AST_Node* node)
         {
-            xxxx;
+            if(node->tag != BSQON_AST_TAG_BsqonDeclBody) {
+                return std::make_pair(std::nullopt, std::nullopt);
+            }
+
+            auto dnoa = BSQON_AST_NODE_AS(BsqonDeclBody, node);
+            if(dnoa->shebangmeta == NULL) {
+                return std::make_pair(std::nullopt, std::nullopt);
+            }
+
+            std::string smeta = std::string(dnoa->shebangmeta).substr(2);
+            auto qidx = smeta.find('?');
+            if(qidx == std::string::npos) {
+                return std::make_pair(std::optional<std::string>(smeta), std::optional<std::string>());
+            }
+            else {
+                auto asmpath = smeta.substr(0, qidx);
+                auto tname = smeta.substr(qidx + 1);
+                return std::make_pair(std::optional<std::string>(asmpath), std::optional<std::string>(tname));
+            }
         }
     };
 }

@@ -107,8 +107,11 @@ namespace bsqon
         std::optional<SensitiveAnnotation> sannotation = std::nullopt;
         if(j.contains("sannotation") && !j["sannotation"].is_null()) {
             std::vector<std::pair<TypeKey, std::string>> annotations;
+            std::transform(j["sannotation"].begin(), j["sannotation"].end(), std::back_inserter(annotations), [](const json& jv) { 
+                return std::make_pair(jv["tkey"].get<TypeKey>(), jv["ename"].get<std::string>()); 
+            });
 
-            xxxx;
+            sannotation = std::make_optional(SensitiveAnnotation(annotations));
         }
 
         switch(tt) {
@@ -122,20 +125,30 @@ namespace bsqon
                 std::transform(j["entries"].begin(), j["entries"].end(), std::back_inserter(entries), [](const json& jv) { 
                     return RecordTypeEntry(jv["pname"].get<std::string>(), jv["ptype"].get<TypeKey>()); 
                 });
-                return new RecordType(entries);
+                return new RecordType(isrecursive, sannotation, entries);
             }
             case TypeTag::TYPE_STD_ENTITY: {
                 std::vector<EntityTypeFieldEntry> fields;
-                std::transform(j["fields"].begin(), j["fields"].end(), std::back_inserter(fields), [](const json& jv) { 
-                    return EntityTypeFieldEntry(jv["fname"].get<std::string>(), jv["ftype"].get<TypeKey>()); 
+                std::transform(j["fields"].begin(), j["fields"].end(), std::back_inserter(fields), [](const json& jv) {
+                    std::optional<SensitiveAnnotation> fsannotation = std::nullopt;
+                    if(jv.contains("sannotation") && !jv["sannotation"].is_null()) {
+                        std::vector<std::pair<TypeKey, std::string>> annotations;
+                        std::transform(jv["sannotation"].begin(), jv["sannotation"].end(), std::back_inserter(annotations), [](const json& jv) { 
+                            return std::make_pair(jv["tkey"].get<TypeKey>(), jv["ename"].get<std::string>()); 
+                        });
+
+                        fsannotation = std::make_optional(SensitiveAnnotation(annotations));
+                    }
+
+                    return EntityTypeFieldEntry(jv["fname"].get<std::string>(), jv["ftype"].get<TypeKey>(), fsannotation); 
                 });
                 bool hasvalidations = j["hasvalidations"].get<bool>();
-                return new StdEntityType(j["tkey"].get<TypeKey>(), fields, hasvalidations);
+                return new StdEntityType(j["tkey"].get<TypeKey>(), isrecursive, sannotation, fields, hasvalidations);
             }
             case TypeTag::TYPE_STD_CONCEPT: {
                 std::vector<TypeKey> subtypes;
                 std::transform(j["subtypes"].begin(), j["subtypes"].end(), std::back_inserter(subtypes), [](const json& jv) { return jv.get<TypeKey>(); });
-                return new StdConceptType(j["tkey"].get<TypeKey>(), subtypes);
+                return new StdConceptType(j["tkey"].get<TypeKey>(), subtypes, isrecursive, sannotation);
             }
             case TypeTag::TYPE_PRIMITIVE: {
                 return new PrimitiveType(j["tkey"].get<TypeKey>());
@@ -149,7 +162,7 @@ namespace bsqon
                 std::optional<TypeKey> optStringOfValidator = !j["optStringOfValidator"].is_null() ? std::make_optional(j["optStringOfValidator"].get<std::string>()) : std::nullopt;
                 std::optional<TypeKey> optPathOfValidator = !j["optPathOfValidator"].is_null() ? std::make_optional(j["optPathOfValidator"].get<std::string>()) : std::nullopt;
                 bool hasvalidations = j["hasvalidations"].get<bool>();
-                return new TypedeclType(j["tkey"].get<TypeKey>(), j["basetype"].get<TypeKey>(), j["oftype"].get<TypeKey>(), optStringOfValidator, optPathOfValidator, hasvalidations);
+                return new TypedeclType(j["tkey"].get<TypeKey>(), sannotation, j["basetype"].get<TypeKey>(), j["oftype"].get<TypeKey>(), optStringOfValidator, optPathOfValidator, hasvalidations);
             }
             case TypeTag::TYPE_VALIDATOR_RE: {
                 return new ValidatorREType(j["tkey"].get<TypeKey>());
@@ -164,19 +177,19 @@ namespace bsqon
                 return new ASCIIStringOfType(j["oftype"].get<TypeKey>());
             }
             case TypeTag::TYPE_SOMETHING: {
-                return new SomethingType(j["oftype"].get<TypeKey>());
+                return new SomethingType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_OPTION: {
-                return new OptionType(j["oftype"].get<TypeKey>());
+                return new OptionType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_OK: {
-                return new OkType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>());
+                return new OkType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_ERROR: {
-                return new ErrorType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>());
+                return new ErrorType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_RESULT: {
-                return new ResultType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>());
+                return new ResultType(j["ttype"].get<TypeKey>(), j["etype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_PATH: {
                 return new PathType(j["oftype"].get<TypeKey>());
@@ -188,32 +201,32 @@ namespace bsqon
                 return new PathGlobType(j["oftype"].get<TypeKey>());
             }
             case TypeTag::TYPE_LIST: {
-                return new ListType(j["oftype"].get<TypeKey>());
+                return new ListType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_STACK: {
-                return new StackType(j["oftype"].get<TypeKey>());
+                return new StackType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_QUEUE: {
-                return new QueueType(j["oftype"].get<TypeKey>());
+                return new QueueType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_SET: {
-                return new SetType(j["oftype"].get<TypeKey>());
+                return new SetType(j["oftype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_MAP_ENTRY: {
-                return new MapEntryType(j["ktype"].get<TypeKey>(), j["vtype"].get<TypeKey>());
+                return new MapEntryType(j["ktype"].get<TypeKey>(), j["vtype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_MAP: {
-                return new MapType(j["ktype"].get<TypeKey>(), j["vtype"].get<TypeKey>());
+                return new MapType(j["ktype"].get<TypeKey>(), j["vtype"].get<TypeKey>(), isrecursive, sannotation);
             }
             case TypeTag::TYPE_CONCEPT_SET: {
                 std::vector<TypeKey> concepts;
                 std::transform(j["concepts"].begin(), j["concepts"].end(), std::back_inserter(concepts), [](const json& jv) { return jv.get<TypeKey>(); });
-                return new ConceptSetType(concepts);
+                return new ConceptSetType(isrecursive, sannotation, concepts);
             }
             case TypeTag::TYPE_UNION: {
                 std::vector<TypeKey> types;
                 std::transform(j["types"].begin(), j["types"].end(), std::back_inserter(types), [](const json& jv) { return jv.get<TypeKey>(); });
-                return new UnionType(types);
+                return new UnionType(isrecursive, sannotation, types);
             }
             default: {
                 return UnresolvedType::singleton;
