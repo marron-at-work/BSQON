@@ -66,7 +66,7 @@ std::map<std::string, std::pair<const BSQON_AST_Node*, const uint8_t*>> loadEnvi
     for(auto ii = envkeys.cbegin(); ii != envkeys.cend(); ++ii) {
         auto envval = (const uint8_t*)getenv(ii->first.c_str());
         if(envval == nullptr) {
-            printf("Missing environment variable '%s'\n", *ii);
+            printf("Missing environment variable '%s'\n", ii->first.c_str());
             exit(1);
         }
 
@@ -219,7 +219,7 @@ int main(int argc, char** argv, char **envp)
 
     if(parser.errors.empty() && errorInfoCount == 0) {
         std::u8string rstr = res->toString();
-        printf("%s\n", rstr.c_str());
+        printf("%s\n", (const char*)rstr.c_str());
 
         fflush(stdout);
         exit(0);

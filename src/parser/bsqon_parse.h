@@ -69,6 +69,7 @@ namespace bsqon
         std::map<std::string, Value*> vbinds;
 
         std::map<std::string, const brex::RegexOpt*> namedRegexes;
+
         std::map<TypeKey, brex::UnicodeRegexExecutor*> reunicodebinds;
         std::map<TypeKey, brex::ASCIIRegexExecutor*> reasciibinds;
 

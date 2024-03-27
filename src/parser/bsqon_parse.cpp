@@ -1411,14 +1411,13 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, true, false, false);
-        if(!rparse.first.has_value()  || !rparse.second.empty()) {
-            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
-            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+        auto rparse = UnicodeRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        if(rparse == nullptr) {
+            this->addError("Invalid Regex value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
         
-        return UnicodeRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        return rparse; 
     }
 
     Value* Parser::parseASCIIRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
@@ -1434,14 +1433,13 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, false, true, false);
-        if(!rparse.first.has_value()  || !rparse.second.empty()) {
-            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
-            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+        auto rparse = ASCIIRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        if(rparse == nullptr) {
+            this->addError("Invalid Regex value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
         
-        return ASCIIRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        return rparse;
     }
 
     Value* Parser::parsePathRegex(const PrimitiveType* t, const BSQON_AST_Node* node)
@@ -1457,14 +1455,13 @@ namespace bsqon
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
 
-        auto rparse = brex::RegexParser::parseRegex(strnode->data->bytes, strnode->data->len, false, true, false);
-        if(!rparse.first.has_value()  || !rparse.second.empty()) {
-            auto mmsg = !rparse.second.empty() ? (u8": " + rparse.second.front().msg) : u8"";
-            this->addError("Invalid Regex value" + std::string(mmsg.cbegin(), mmsg.cend()), Parser::convertSrcPos(node->pos));
+        auto rparse = PathRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        if(rparse == nullptr) {
+            this->addError("Invalid Regex value", Parser::convertSrcPos(node->pos));
             return new ErrorValue(t, Parser::convertSrcPos(node->pos));
         }
         
-        return PathRegexValue::createFromParse(t, Parser::convertSrcPos(node->pos), strnode->data->bytes, strnode->data->len);
+        return rparse;
     }
 
     Value* Parser::parseStringOf(const StringOfType* t, const BSQON_AST_Node* node)
@@ -1477,7 +1474,7 @@ namespace bsqon
         const brex::Regex* vre = this->assembly->bsqonRegexValidators.at(t->oftype);
         if(!this->reunicodebinds.contains(t->oftype)) {
             std::vector<brex::RegexCompileError> compileerror;
-            auto uexecutor = brex::RegexCompiler::compileUnicodeRegexToExecutor(vre, this->namedRegexes, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
+            auto uexecutor = brex::RegexCompiler::compileUnicodeRegexToExecutor(vre, this->namedRegexes, {}, false, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
 
             if(compileerror.size() > 0) {
                 this->addError("Invalid Regex value: " + std::string(compileerror.front().msg.cbegin(), compileerror.front().msg.cend()), Parser::convertSrcPos(node->pos));
@@ -1520,7 +1517,7 @@ namespace bsqon
         const brex::Regex* vre = this->assembly->bsqonRegexValidators.at(t->oftype);
         if(!this->reasciibinds.contains(t->oftype)) {
             std::vector<brex::RegexCompileError> compileerror;
-            auto aexecutor = brex::RegexCompiler::compileASCIIRegexToExecutor(vre, this->namedRegexes, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
+            auto aexecutor = brex::RegexCompiler::compileASCIIRegexToExecutor(vre, this->namedRegexes, {}, false, (brex::NameResolverState*)this->assembly, Parser::resolveTypeForRegexLookup, compileerror);
 
             if(compileerror.size() > 0) {
                 this->addError("Invalid Regex value: " + std::string(compileerror.front().msg.cbegin(), compileerror.front().msg.cend()), Parser::convertSrcPos(node->pos));

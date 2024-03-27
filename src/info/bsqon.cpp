@@ -57,7 +57,7 @@ namespace bsqon
 
     UnicodeRegexValue* UnicodeRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, true, false, false);
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, true, false, false, true);
         if(!re.first.has_value()) {
             return nullptr;
         }
@@ -68,7 +68,7 @@ namespace bsqon
 
     ASCIIRegexValue* ASCIIRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, false);
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, false, true);
         if(!re.first.has_value()) {
             return nullptr;
         }
@@ -79,7 +79,7 @@ namespace bsqon
 
     PathRegexValue* PathRegexValue::createFromParse(const Type* vtype, SourcePos spos, const uint8_t* bytes, size_t length)
     {
-        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, true);
+        auto re = brex::RegexParser::parseRegex((uint8_t*)bytes, length, false, true, true, true);
         if(!re.first.has_value()) {
             return nullptr;
         }

@@ -12,6 +12,8 @@ OUT_OBJ=$(BUILD_DIR)output/obj/
 PCKG_DIR=$(BUILD_DIR)bsqon/
 
 JSON_INCLUDES=-I $(BUILD_DIR)include/json/
+BREX_INCLUDES=-I $(BUILD_DIR)include/brex/
+BREX_PATH=$(BUILD_DIR)include/brex/
 LIB_PATH=$(OUT_EXE)
 
 #dev is default, for another flavor : make BUILD=release or debug
@@ -20,8 +22,8 @@ BUILD := dev
 CPP=g++
 CPP_STDFLAGS=-Wall -Wextra -Wno-unused-parameter -Wuninitialized -Werror -std=gnu++20
 
-CPPFLAGS_OPT.debug=-O0 -g -ggdb -fno-omit-frame-pointer -DBREX_DEBUG -fsanitize=address
-CPPFLAGS_OPT.dev=-O0 -g -ggdb -fno-omit-frame-pointer -DBREX_DEBUG
+CPPFLAGS_OPT.debug=-O0 -g -ggdb -fno-omit-frame-pointer -fsanitize=address
+CPPFLAGS_OPT.dev=-O0 -g -ggdb -fno-omit-frame-pointer
 CPPFLAGS_OPT.release=-O3 -march=x86-64-v3
 CPPFLAGS=${CPPFLAGS_OPT.${BUILD}} ${CPP_STDFLAGS}
 CPPFLAGS_TEST=${CPPFLAGS_OPT.dev} ${CPP_STDFLAGS}
@@ -35,6 +37,8 @@ CFLAGS_OPT.release=-O3 -march=x86-64-v3
 CFLAGS=${CFLAGS_OPT.${BUILD}} ${CSTDFLAGS}
 CFLAGS_TEST=${CFLAGS_OPT.dev} ${CSTDFLAGS}
 
+AR=ar
+ARFLAGS=rs
 
 CFG_HEADERS=$(PARSER_GEN_DIR)bytestring.h $(PARSER_GEN_DIR)bsqon_ast_common.h $(PARSER_GEN_DIR)bsqon_ast.h
 CFG_SOURCES=$(PARSER_GEN_DIR)bsqon.y $(PARSER_GEN_DIR)bsqon.l
@@ -49,38 +53,39 @@ BSQON_OBJS=$(OUT_OBJ)type_info.o $(OUT_OBJ)bsqon.o $(OUT_OBJ)bsqon_parse.o
 
 MAKEFLAGS += -j4
 
-all: $(OUT_EXE)bsqonlib.a $(BIN_DIR)bsqon $(PCKG_DIR)bsqonlib.a
+all: $(OUT_EXE)libbsqon.a $(BIN_DIR)bsqon $(PCKG_DIR)libbsqon.a
 
-$(PCKG_DIR)bsqonlib.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_EXE)bsqonlib.a
+$(PCKG_DIR)libbsqon.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_EXE)libbsqon.a
 	@mkdir -p $(PCKG_DIR)
 	@mkdir -p $(PCKG_DIR)fbparser/
 	@mkdir -p $(PCKG_DIR)info/
 	@mkdir -p $(PCKG_DIR)parser/
-	cp $(OUT_EXE)bsqonlib.a $(PCKG_DIR)bsqonlib.a
+	cp $(OUT_EXE)libbsqon.a $(PCKG_DIR)libbsqon.a
 	cp $(SRC_DIR)/common.h $(PCKG_DIR)/common.h
 	cp $(CFG_HEADERS) $(PCKG_DIR)fbparser/
 	cp $(BSQON_HEADERS) $(PCKG_DIR)info/
 	cp $(PARSER_HEADERS) $(PCKG_DIR)parser/
 
-$(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(OUT_EXE)bsqonlib.a $(PARSER_DIR)bsqon_main.cpp
+$(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(OUT_EXE)libbsqon.a $(PARSER_DIR)bsqon_main.cpp
 	@mkdir -p $(BIN_DIR)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_EXE)bsqon $(OUT_EXE)bsqonlib.a $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -L$(BREX_PATH) -L$(LIB_PATH) -o $(OUT_EXE)bsqon $(BSQON_OBJS) $(PARSER_OBJS) $(PARSER_DIR)bsqon_main.cpp -lbrex -lfl -lgmp
+#$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -o $(OUT_EXE)bsqon $(BREX_PATH)brexlib.a $(OUT_EXE)libbsqon.a $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
 
-$(OUT_EXE)bsqonlib.a: $(BSQON_OBJS) $(PARSER_OBJS)
+$(OUT_EXE)libbsqon.a: $(BSQON_OBJS) $(PARSER_OBJS)
 	@mkdir -p $(OUT_EXE)
-	$(AR) $(ARFLAGS) $(OUT_EXE)bsqonlib.a $(BSQON_OBJS) $(PARSER_OBJS)
+	$(AR) $(ARFLAGS) $(OUT_EXE)libbsqon.a $(BSQON_OBJS) $(PARSER_OBJS)
 
 $(OUT_OBJ)bsqon_parse.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(PARSER_DIR)bsqon_parse.cpp
 	@mkdir -p $(OUT_OBJ)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)bsqon_parse.o -c $(PARSER_DIR)bsqon_parse.cpp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -o $(OUT_OBJ)bsqon_parse.o -c $(PARSER_DIR)bsqon_parse.cpp
 
 $(OUT_OBJ)bsqon.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(INFO_DIR)bsqon.cpp
 	@mkdir -p $(OUT_OBJ)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)bsqon.o -c $(INFO_DIR)bsqon.cpp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -o $(OUT_OBJ)bsqon.o -c $(INFO_DIR)bsqon.cpp
 
 $(OUT_OBJ)type_info.o: $(BSQON_HEADERS) $(PARSER_HEADERS) $(INFO_DIR)type_info.cpp
 	@mkdir -p $(OUT_OBJ)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) -o $(OUT_OBJ)type_info.o -c $(INFO_DIR)type_info.cpp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -o $(OUT_OBJ)type_info.o -c $(INFO_DIR)type_info.cpp
 
 $(OUT_OBJ)bytestring.o: $(PARSER_HEADERS) $(PARSER_GEN_DIR)bytestring.c
 	@mkdir -p $(OUT_OBJ)

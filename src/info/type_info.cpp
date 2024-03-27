@@ -262,7 +262,12 @@ namespace bsqon
 
         std::for_each(j["revalidators"].begin(), j["revalidators"].end(), [&assembly](const json &rv) {
             std::string ss = rv[1].get<std::string>();
-            auto bre = brex::RegexParser::parseRegex((uint8_t*)ss.c_str(), ss.size(), false, true, false);
+            bool isascii = ss.ends_with("a");
+            if(isascii) {
+                ss.pop_back();
+            }
+
+            auto bre = brex::RegexParser::parseRegex((uint8_t*)ss.c_str(), ss.size(), !isascii, false, false, false);
             assembly.bsqonRegexValidators[rv[0].get<TypeKey>()] = bre.first.value();
         });
 
