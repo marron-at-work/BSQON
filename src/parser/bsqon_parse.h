@@ -18,6 +18,24 @@ namespace bsqon
         ParseError(std::string message, SourcePos loc) : message(message), loc(loc) {;}
     };
 
+    enum class ContainerParseStackEntryTag
+    {
+        Slice,
+        List,
+        Map
+    };
+
+    class ContainerParseStackEntry
+    {
+    public:
+        ContainerParseStackEntryTag tag;
+        int64_t ival;
+        Value* kval;
+
+        ContainerParseStackEntry(ContainerParseStackEntryTag tag) : tag(tag), ival(0), kval(nullptr) {;}
+        ContainerParseStackEntry(ContainerParseStackEntryTag tag, int64_t ival) : tag(tag), ival(ival), kval(nullptr) {;}
+    };
+
     class Parser
     {
     private:
@@ -53,7 +71,7 @@ namespace bsqon
 
         std::optional<Value*> processPropertiesForSpecialCons(const Type* etype, const BSQON_AST_NODE(BraceValue)* node);
         std::optional<std::pair<Value*, Value*>> processPropertiesForMapEntry(const Type* ktype, const Type* vtype, const BSQON_AST_NODE(BraceValue)* node);
-        void processEntriesForSequence(const Type* etype, const BSQON_AST_Node* node, std::vector<Value*>& vals);
+        void processEntriesForSequence(const Type* etype, const BSQON_AST_Node* node, std::vector<Value*>& vals, bool advanceimplicitindex);
         void processEntriesForMap(const Type* keytype, const Type* valtype, const BSQON_AST_NODE(BraceValue)* node, std::vector<MapEntryValue*>& entries);
 
     public:
@@ -72,6 +90,8 @@ namespace bsqon
 
         std::map<TypeKey, brex::UnicodeRegexExecutor*> reunicodebinds;
         std::map<TypeKey, brex::ASCIIRegexExecutor*> reasciibinds;
+
+        std::list<ContainerParseStackEntry> containerstack;
 
         Parser(const AssemblyInfo* assembly) {;}
         virtual ~Parser() = default;
@@ -232,7 +252,7 @@ namespace bsqon
         Value* parseSomething(const SomethingType* t, const BSQON_AST_Node* node);
         Value* parseOk(const OkType* t, const BSQON_AST_Node* node);
         Value* parseErr(const ErrorType* t, const BSQON_AST_Node* node);
-        Value* parseMapEntry(const MapEntryType* t, const BSQON_AST_Node* node);
+        Value* parseMapEntry(const MapEntryType* t, const BSQON_AST_Node* node, bool implicitkey);
         
         Value* parseTuple(const TupleType* t, const BSQON_AST_Node* node);
         Value* parseRecord(const RecordType* t, const BSQON_AST_Node* node);
@@ -266,7 +286,7 @@ namespace bsqon
         Value* parseValueSimple(const Type* t, const BSQON_AST_Node* node);
         Value* parseValueUnion(const UnionType* t, const BSQON_AST_Node* node);
 
-        Value* parseIdentifier(const Type* t, const BSQON_AST_Node* node, bool nposok);
+        Value* parseIdentifier(const Type* t, const BSQON_AST_Node* node);
         Value* parseScopedName(const Type* t, const BSQON_AST_Node* node);
         Value* parseLetIn(const Type* t, const BSQON_AST_Node* node);
         Value* parseAccessIndex(const Type* t, const BSQON_AST_Node* node);
@@ -276,7 +296,7 @@ namespace bsqon
         Value* parseUnspecIdentifierValue(const Type* t, const BSQON_AST_Node* node);
         Value* parseEnvAccess(const Type* t, const BSQON_AST_Node* node);
 
-        Value* parseValue(const Type* t, const BSQON_AST_Node* node, bool nposok=false);
+        Value* parseValue(const Type* t, const BSQON_AST_Node* node);
 
         BsqonDecl* parseBSQON(std::string asmpath, const Type* t, const BSQON_AST_Node* node)
         {

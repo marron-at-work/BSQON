@@ -65,7 +65,10 @@ int errorcount = 0;
 %token KW_ERR "err"
 
 %token KW_NPOS "$npos"
+%token KW_INDEX "$i"
+%token KW_KEY "$key"
 %token KW_SRC "$src"
+
 %token KW_LET "let"
 %token KW_IN "in"
 %token KW_ENV "env"
@@ -257,6 +260,8 @@ bsqonunspecvar:
 bsqonidentifier: 
    KW_SRC       { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$src"); }
    | KW_NPOS     { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$npos"); }
+   | KW_INDEX     { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$i"); }
+   | KW_KEY     { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), "$key"); }
    | TOKEN_IDENTIFIER { $$ = BSQON_AST_NODE_CONS(NameValue, BSQON_AST_TAG_IdentifierValue, MK_SPOS_S(@1), $1); }
 ;
 
