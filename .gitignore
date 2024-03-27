@@ -37,5 +37,5 @@ build/output/*
 build/bsqon/*
 .vscode/launch.json
 
-# Not vendored libs 
-#!build/include/brex/libbrex.a
+# But don't exclude vendored libs 
+!build/include/brex/libbrex.a
