@@ -68,7 +68,7 @@ $(PCKG_DIR)libbsqon.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_E
 
 $(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(OUT_EXE)libbsqon.a $(PARSER_DIR)bsqon_main.cpp
 	@mkdir -p $(BIN_DIR)
-	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -L$(BREX_PATH) -L$(LIB_PATH) -o $(OUT_EXE)bsqon $(BSQON_OBJS) $(PARSER_OBJS) $(PARSER_DIR)bsqon_main.cpp -lbrex -lfl -lgmp
+	$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -L$(BREX_PATH) -L$(LIB_PATH) -o $(OUT_EXE)bsqon $(PARSER_DIR)bsqon_main.cpp -lbsqon -lbrex -lfl -lgmp
 #$(CPP) $(CPPFLAGS) $(JSON_INCLUDES) $(BREX_INCLUDES) -o $(OUT_EXE)bsqon $(BREX_PATH)brexlib.a $(OUT_EXE)libbsqon.a $(PARSER_DIR)bsqon_main.cpp -lfl -lgmp
 
 $(OUT_EXE)libbsqon.a: $(BSQON_OBJS) $(PARSER_OBJS)
