@@ -3,8 +3,6 @@
 
 #include "../common.h"
 
-#include "../../build/include/brex/regex/brex_system.h"
-
 namespace bsqon
 {
     //

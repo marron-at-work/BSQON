@@ -12,14 +12,15 @@
 #include "json.hpp"
 typedef nlohmann::json json;
 
-#include "../build/include/brex/regex/brex.h"
-#include "../build/include/brex/regex/brex_parser.h"
-#include "../build/include/brex/regex/brex_compiler.h"
-#include "../build/include/brex/regex/brex_executor.h"
+#include "brex.h"
+#include "brex_parser.h"
+#include "brex_compiler.h"
+#include "brex_executor.h"
+#include "brex_system.h"
 
-#include "../build/include/brex/path/path.h"
-#include "../build/include/brex/path/path_fragment.h"
-#include "../build/include/brex/path/path_glob.h"
+#include "path.h"
+#include "path_fragment.h"
+#include "path_glob.h"
 
 namespace bsqon
 {

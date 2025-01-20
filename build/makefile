@@ -12,7 +12,7 @@ OUT_OBJ=$(BUILD_DIR)output/obj/
 PCKG_DIR=$(BUILD_DIR)bsqon/
 
 JSON_INCLUDES=-I $(BUILD_DIR)include/json/
-BREX_INCLUDES=-I $(BUILD_DIR)include/brex/
+BREX_INCLUDES=-I $(BUILD_DIR)include/brex/ -I $(BUILD_DIR)include/brex/regex/ -I $(BUILD_DIR)include/brex/path/
 BREX_PATH=$(BUILD_DIR)include/brex/
 LIB_PATH=$(OUT_EXE)
 
@@ -67,9 +67,9 @@ $(PCKG_DIR)libbsqon.a: $(BSQON_HEADERS) $(PARSER_HEADERS) $(CFG_HEADERS) $(OUT_E
 	@mkdir -p $(PCKG_DIR)parser/
 	cp $(OUT_EXE)libbsqon.a $(PCKG_DIR)libbsqon.a
 	cp $(SRC_DIR)/common.h $(PCKG_DIR)/common.h
-	cp $(CFG_HEADERS) $(PCKG_DIR)fbparser/
-	cp $(BSQON_HEADERS) $(PCKG_DIR)info/
-	cp $(PARSER_HEADERS) $(PCKG_DIR)parser/
+	cp $(PARSER_HEADERS) $(PCKG_DIR)fbparser/
+	cp $(INFO_DIR)type_info.h $(INFO_DIR)bsqon.h $(PCKG_DIR)info/
+	cp $(PARSER_DIR)bsqon_parse.h $(PCKG_DIR)parser/
 
 $(BIN_DIR)bsqon: $(BSQON_HEADERS) $(PARSER_HEADERS) $(OUT_EXE)libbsqon.a $(PARSER_DIR)bsqon_main.cpp
 	@mkdir -p $(BIN_DIR)
